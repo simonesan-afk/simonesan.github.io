@@ -1,278 +1,116 @@
-/* FONT RETRO */
-body {
-    font-family: 'VT323', monospace;
-    background-color: #000;
-    color: #ff7b00;
-    margin: 0;
-    padding: 0;
-    text-shadow: 0 0 8px #ff7b00;
-    overflow-x: hidden;
-}
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>🛡️ PRAETOR: CV Self-Assessment Helper (v5.5 STABLE)</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>🛡️ PRAETOR: CV Self-Assessment Helper (v5.5 STABLE)</h1>
+    <p class="subtitle">FOREVER FREE, Heuristic, Data-Driven Resume Evaluation Engine (System Prompt)</p>
+    <p class="byline">Created by <strong>FRIULANIKA CORP.</strong> — "The future is inevitable"</p>
 
-/* EFFETTO SCANLINES */
-body::before {
-    content: "";
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    background: repeating-linear-gradient(
-        to bottom,
-        rgba(255, 123, 0, 0.05) 0px,
-        rgba(255, 123, 0, 0.05) 2px,
-        transparent 3px,
-        transparent 4px
-    );
-    z-index: 9999;
-}
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="about.html">About</a>
+      <a href="projects.html">Projects</a>
+      <a href="contact.html">Contact</a>
+    </nav>
 
-/* EFFETTO FLICKER */
-@keyframes flicker {
-    0% { opacity: 1; }
-    50% { opacity: 0.97; }
-    100% { opacity: 1; }
-}
+    <div class="cta">
+      <a class="btn" href="https://hf.co/spaces/Astrodeism/CV-Praetorian-Guard" target="_blank" rel="noopener noreferrer">🚀 TRY FULL DEMO!</a>
+    </div>
+  </header>
 
-body {
-    animation: flicker 0.15s infinite;
-}
+  <main>
+    <section>
+      <h2>Overview</h2>
 
-/* TRE LINEE ORIZZONTALI STILE ALIEN */
-header::after {
-    content: "";
-    display: block;
-    width: 100%;
-    height: 6px;
-    margin-top: 20px;
-    background: linear-gradient(
-        to right,
-        #ff7b00 0%,
-        #ff7b00 33%,
-        transparent 33%,
-        transparent 66%,
-        #ff7b00 66%,
-        #ff7b00 100%
-    );
-    box-shadow: 0 0 12px #ff7b00;
-}
+      <p><strong>Above:</strong> paste your cv (remove sensitive data)</p>
+      <p><strong>Below:</strong> paste the job posting</p>
+      <p><strong>Right side:</strong> copy and paste everything into your preferred ai chat (most powerful option, if available)</p>
 
-/* HEADER */
-/* RETRO TERMINAL FONT */
-@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+      <p><a class="link" href="https://hf.co/spaces/Astrodeism/CV-Praetorian-Guard" target="_blank" rel="noopener noreferrer">Click here to start demo!</a></p>
 
-body {
-    font-family: 'VT323', monospace;
-    background-color: #000;
-    color: #ff7b00;
-    margin: 0;
-    padding: 0;
-    text-shadow: 0 0 8px #ff7b00;
-    overflow-x: hidden;
-}
+      <h3>🚀 HOW TO USE THE PROMPT</h3>
+      <ol>
+        <li><strong>Copy the Prompt</strong> — Copy the entire content of the file <em>v5.5 STABLE.txt</em>.</li>
+        <li><strong>Initialize the AI</strong> — Paste the text into a new chat session with your preferred LLM (ChatGPT-4, Claude 3, etc.).</li>
+        <li><strong>Wait for the Handshake</strong> — The system will reply with: <em>👋 PRAETOR v5.5 Ready.</em></li>
+        <li><strong>Input Data</strong> — Paste your REDACTED CV and the target Job Description.</li>
+        <li><strong>Review Report</strong> — The system will generate a detailed markdown report with a score, trust level, and tactical fixes.</li>
+      </ol>
 
-/* SCANLINES */
-body::before {
-    content: "";
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    background: repeating-linear-gradient(
-        to bottom,
-        rgba(255, 123, 0, 0.05) 0px,
-        rgba(255, 123, 0, 0.05) 2px,
-        transparent 3px,
-        transparent 4px
-    );
-    z-index: 9999;
-}
+      <h3>Overview</h3>
+      <p>PRAETOR v5.5 is an advanced System Prompt designed for Large Language Models (LLMs) like ChatGPT, Claude, Gemin, etc.</p>
+      <p>Developed by Friulanika Corp., it acts as a heuristic engine to analyze the alignment between a Curriculum Vitae (CV) and a Job Description (JD). Unlike standard AI summaries, PRAETOR uses a strict scoring logic, enforces privacy protocols, and applies anti-bias context to career gaps.</p>
 
-/* FLICKER */
-@keyframes flicker {
-    0% { opacity: 1; }
-    50% { opacity: 0.97; }
-    100% { opacity: 1; }
-}
-body { animation: flicker 0.15s infinite; }
+      <h3>Key Features</h3>
+      <ul>
+        <li><strong>🔒 Privacy-First Logic:</strong> Automatically detects and flags Personal Identifiable Information (PII) if accidentally included, advising the user to redact it.</li>
+        <li><strong>⚖️ Anti-Bias Experience Scoring:</strong> Recognizes human context. Career gaps (&gt;6 months) labeled as caregiving, health, or education are not penalized.</li>
+        <li><strong>🧠 Heuristic Scoring Model:</strong> Provides an indicative score out of 100 based on four pillars: Hard Skills, Experience, Quantified Impact, ATS Optimization.</li>
+        <li><strong>🎓 Educational Feedback:</strong> Explains why and provides tactical fixes instead of generic criticism.</li>
+      </ul>
 
-/* TRE LINEE ORIZZONTALI */
-header::after {
-    content: "";
-    display: block;
-    width: 100%;
-    height: 6px;
-    margin-top: 20px;
-    background: linear-gradient(
-        to right,
-        #ff7b00 0%,
-        #ff7b00 33%,
-        transparent 33%,
-        transparent 66%,
-        #ff7b00 66%,
-        #ff7b00 100%
-    );
-    box-shadow: 0 0 12px #ff7b00;
-}
+      <h3>Scoring Logic</h3>
+      <p>The total score (100 points) is calculated as follows:</p>
 
-/* HEADER */
-header {
-    text-align: center;
-    padding: 60px 20px;
-    border-bottom: 1px solid #ff7b00;
-}
-h1 {
-    font-size: 4rem;
-    margin: 0;
-    letter-spacing: 4px;
-}
-.subtitle {
-    font-size: 1.2rem;
-    opacity: 0.85;
-}
+      <table>
+        <thead>
+          <tr>
+            <th><strong>Component</strong></th>
+            <th><strong>Points</strong></th>
+            <th><strong>Description</strong></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Hard Skills</td>
+            <td>40</td>
+            <td>Semantic matching of critical skills found in the JD.</td>
+          </tr>
+          <tr>
+            <td>Experience</td>
+            <td>30</td>
+            <td>Relevance of history + Continuity (incorporating anti-bias logic for gaps).</td>
+          </tr>
+          <tr>
+            <td>Impact</td>
+            <td>20</td>
+            <td>Presence of quantified metrics (%, $, user growth).</td>
+          </tr>
+          <tr>
+            <td>ATS Check</td>
+            <td>10</td>
+            <td>Keyword presence check for automated screening systems.</td>
+          </tr>
+        </tbody>
+      </table>
 
-/* NAVIGATION */
-nav {
-    margin-top: 30px;
-}
-nav a {
-    margin: 0 15px;
-    color: #ff7b00;
-    text-decoration: none;
-    font-size: 1.1rem;
-}
-nav a:hover { text-shadow: 0 0 12px #ffa64d; }
+      <h3>License &amp; Ethical Use</h3>
+      <p>This project is licensed under the <strong>MIT License</strong>.</p>
+      <p><strong>Ethical Note:</strong> While the MIT license permits broad use of the software, Friulanika Corp. strongly advises against using this prompt for automated rejection of candidates in a professional hiring context. The logic is tuned for self-assessment and educational feedback, not for making employment decisions.</p>
 
-/* CTA BUTTONS */
-.cta { margin-top: 18px; }
-.btn {
-    display: inline-block;
-    margin: 10px;
-    padding: 10px 22px;
-    border: 1px solid #ff7b00;
-    color: #ff7b00;
-    text-decoration: none;
-    font-size: 1.1rem;
-    transition: 0.18s;
-}
-.btn:hover {
-    background-color: #ff7b00;
-    color: #000;
-    text-shadow: none;
-}
+      <h3>⚠️ LEGAL &amp; ETHICAL DISCLAIMER (READ FIRST)</h3>
+      <p><strong>THIS TOOL IS DESIGNED FOR EDUCATIONAL AND PERSONAL REFLECTION ONLY.</strong></p>
+      <ul>
+        <li><strong>NOT FOR HIRING:</strong> This tool provides a heuristic simulation. It must NOT be used for candidate screening, ranking, filtering, or comparison. Always check AI outputs for your safety.</li>
+        <li><strong>NO LIABILITY:</strong> This prompt is provided "as-is". The author (Friulanika Corp.) and contributors assume no liability for outcomes based on this tool.</li>
+        <li><strong>PRIVACY WARNING:</strong> Do not upload unredacted personal data (PII) to public LLMs. Always remove names, phones, emails, and addresses before use.</li>
+        <li><strong>ALWAYS CHECK AI OUTPUTS FOR YOUR SAFETY.</strong></li>
+      </ul>
 
-/* SECTIONS */
-section {
-    padding: 60px 20px;
-    max-width: 900px;
-    margin: auto;
-    border-bottom: 1px solid #ff7b00;
-}
-h2 {
-    font-size: 2rem;
-    border-left: 5px solid #ff7b00;
-    padding-left: 10px;
-    margin-bottom: 18px;
-}
+      <p class="credits">Created by <strong>FRIULANIKA CORP.</strong> — "The future is inevitable"</p>
+    </section>
+  </main>
 
-/* LISTS */
-ul, ol {
-    font-size: 1.2rem;
-    line-height: 1.9rem;
-    margin-left: 1.1rem;
-}
+  <footer>
+    <p>Version: <strong>v5.5 STABLE</strong> — License: <strong>MIT</strong></p>
+    <p>© FRIULANIKA CORP.</p>
+  </footer>
+</body>
+</html>
 
-/* PLACEHOLDER BOXES */
-.placeholder {
-    border: 1px dashed #ff7b00;
-    padding: 36px;
-    text-align: center;
-    margin-top: 20px;
-    font-size: 1.1rem;
-    opacity: 0.85;
-}
-
-/* FOOTER */
-footer {
-    text-align: center;
-    padding: 20px;
-    opacity: 0.7;
-    font-size: 1rem;
-}
-
-/* RESPONSIVE */
-@media (max-width: 600px) {
-    h1 { font-size: 2.4rem; }
-    nav a { display: inline-block; margin: 8px; font-size: 1rem; }
-    section { padding: 40px 16px; }
-}
-
-
-/* NAVIGATION */
-nav {
-    margin-top: 30px;
-}
-
-nav a {
-    margin: 0 15px;
-    color: #ff7b00;
-    text-decoration: none;
-    font-size: 1.3rem;
-}
-
-nav a:hover {
-    text-shadow: 0 0 12px #ffa64d;
-}
-
-/* BUTTONS */
-.btn {
-    display: inline-block;
-    margin: 15px;
-    padding: 10px 25px;
-    border: 1px solid #ff7b00;
-    color: #ff7b00;
-    text-decoration: none;
-    font-size: 1.4rem;
-    transition: 0.2s;
-}
-
-.btn:hover {
-    background-color: #ff7b00;
-    color: #000;
-    text-shadow: none;
-}
-
-/* SECTIONS */
-section {
-    padding: 60px 20px;
-    max-width: 800px;
-    margin: auto;
-    border-bottom: 1px solid #ff7b00;
-}
-
-h2 {
-    font-size: 2.5rem;
-    border-left: 5px solid #ff7b00;
-    padding-left: 10px;
-}
-
-/* PLACEHOLDER BOXES */
-.placeholder {
-    border: 1px dashed #ff7b00;
-    padding: 40px;
-    text-align: center;
-    margin-top: 20px;
-    font-size: 1.4rem;
-    opacity: 0.8;
-}
-
-/* FOOTER */
-footer {
-    text-align: center;
-    padding: 20px;
-    opacity: 0.7;
-    font-size: 1.2rem;
-}
