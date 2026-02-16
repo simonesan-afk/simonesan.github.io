@@ -1,7 +1,14 @@
+/* ═══════════════════════════════════════════════════════════════
+   🛡️ PRAETOR v5.5 - NOSTROMO TERMINAL AESTHETIC
+   FRIULANIKA CORP. - "The future is inevitable"
+   ═══════════════════════════════════════════════════════════════ */
+
 /* RETRO TERMINAL FONT */
 @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
 
-/* BASE */
+/* ═══════════════════════════════════════════
+   CSS VARIABLES
+   ═══════════════════════════════════════════ */
 :root {
   --accent: #ff7b00;
   --bg: #000;
@@ -9,8 +16,13 @@
   --muted: rgba(255,123,0,0.85);
 }
 
-* { box-sizing: border-box; }
+* { 
+  box-sizing: border-box; 
+}
 
+/* ═══════════════════════════════════════════
+   BASE STYLES + CRT EFFECTS
+   ═══════════════════════════════════════════ */
 body {
   font-family: var(--font);
   background-color: var(--bg);
@@ -21,9 +33,10 @@ body {
   overflow-x: hidden;
   animation: flicker 0.15s infinite;
   line-height: 1.5;
+  cursor: crosshair; /* Terminal cursor */
 }
 
-/* SCANLINES */
+/* UNIFIED SCANLINES (Arancione + Nero) */
 body::before {
   content: "";
   position: fixed;
@@ -32,24 +45,52 @@ body::before {
   width: 100%;
   height: 100%;
   pointer-events: none;
-  background: repeating-linear-gradient(
-    to bottom,
-    rgba(255, 123, 0, 0.05) 0px,
-    rgba(255, 123, 0, 0.05) 2px,
-    transparent 3px,
-    transparent 4px
-  );
+  background: 
+    /* Scanlines arancioni sottili */
+    repeating-linear-gradient(
+      to bottom,
+      rgba(255, 123, 0, 0.05) 0px,
+      rgba(255, 123, 0, 0.05) 1px,
+      transparent 1px,
+      transparent 3px
+    ),
+    /* Scanlines nere CRT */
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.12) 0px,
+      rgba(0, 0, 0, 0.12) 1px,
+      transparent 1px,
+      transparent 2px
+    );
   z-index: 9999;
 }
 
-/* FLICKER */
+/* CRT FLICKER */
 @keyframes flicker {
   0% { opacity: 1; }
   50% { opacity: 0.97; }
   100% { opacity: 1; }
 }
 
-/* LAYOUT */
+/* SMOOTH SCROLLING */
+html {
+  scroll-behavior: smooth;
+}
+
+/* TEXT SELECTION (Arancione) */
+::selection {
+  background: var(--accent);
+  color: #000;
+}
+
+::-moz-selection {
+  background: var(--accent);
+  color: #000;
+}
+
+/* ═══════════════════════════════════════════
+   HEADER & NAVIGATION
+   ═══════════════════════════════════════════ */
 header {
   text-align: center;
   padding: 48px 20px 28px;
@@ -57,6 +98,7 @@ header {
   position: relative;
 }
 
+/* Progress Bar Decoration */
 header::after {
   content: "";
   display: block;
@@ -79,6 +121,12 @@ h1 {
   font-size: 2.2rem;
   margin: 0;
   letter-spacing: 2px;
+  animation: pulse 3s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
 }
 
 .subtitle {
@@ -103,14 +151,20 @@ nav a {
   color: var(--accent);
   text-decoration: none;
   font-size: 1rem;
+  transition: all 0.3s ease;
 }
 
 nav a:hover {
   text-shadow: 0 0 12px #ffa64d;
+  letter-spacing: 0.05em;
 }
 
-/* CTA */
-.cta { margin-top: 14px; }
+/* ═══════════════════════════════════════════
+   CTA BUTTONS (Enhanced)
+   ═══════════════════════════════════════════ */
+.cta { 
+  margin-top: 14px; 
+}
 
 .btn {
   display: inline-block;
@@ -120,17 +174,26 @@ nav a:hover {
   color: var(--accent);
   text-decoration: none;
   font-size: 1rem;
-  transition: 0.18s;
+  transition: all 0.3s ease;
   background: transparent;
 }
 
-.btn:hover {
+.btn:hover,
+a[href*="hf.co"]:hover {
   background-color: var(--accent);
   color: #000;
-  text-shadow: none;
+  text-shadow: 
+    0 0 10px var(--accent),
+    0 0 20px var(--accent),
+    0 0 30px var(--accent);
+  box-shadow: 
+    0 0 20px rgba(255, 119, 0, 0.8),
+    inset 0 0 10px rgba(255, 119, 0, 0.4);
 }
 
-/* MAIN CONTENT */
+/* ═══════════════════════════════════════════
+   MAIN CONTENT
+   ═══════════════════════════════════════════ */
 main {
   padding: 36px 18px;
 }
@@ -163,12 +226,25 @@ p {
   color: var(--accent);
 }
 
+/* LINKS */
+a {
+  color: var(--accent);
+  transition: all 0.3s ease;
+}
+
+a:hover {
+  text-shadow: 0 0 8px currentColor;
+  letter-spacing: 0.05em;
+}
+
 .link {
   color: var(--accent);
   text-decoration: underline;
 }
 
-/* TABLE */
+/* ═══════════════════════════════════════════
+   TABLE STYLING
+   ═══════════════════════════════════════════ */
 table {
   width: 100%;
   border-collapse: collapse;
@@ -184,13 +260,24 @@ table td {
   font-size: 0.98rem;
 }
 
-/* LISTS */
+/* ═══════════════════════════════════════════
+   LISTS & CODE BLOCKS
+   ═══════════════════════════════════════════ */
 ul, ol {
   margin-left: 1.1rem;
   color: var(--accent);
 }
 
-/* PLACEHOLDERS & FOOTER */
+code, pre {
+  background: rgba(255, 119, 0, 0.1);
+  border-left: 3px solid var(--accent);
+  padding: 2px 6px;
+  font-family: var(--font);
+}
+
+/* ═══════════════════════════════════════════
+   FOOTER
+   ═══════════════════════════════════════════ */
 .placeholder {
   border: 1px dashed var(--accent);
   padding: 20px;
@@ -208,97 +295,22 @@ footer {
   border-top: 1px solid rgba(255,123,0,0.06);
 }
 
-/* RESPONSIVE */
+/* ═══════════════════════════════════════════
+   RESPONSIVE DESIGN
+   ═══════════════════════════════════════════ */
 @media (max-width: 700px) {
   h1 { font-size: 1.6rem; }
   h2 { font-size: 1.2rem; }
   main { padding: 20px 12px; }
   table th, table td { font-size: 0.9rem; }
-}
-/* ═══════════════════════════════════════════
-   🔥 NOSTROMO ENHANCEMENT v2.0
-   ═══════════════════════════════════════════ */
-
-/* 1. Scanline Effect (CRT Monitor) */
-body::before {
-    content: "";
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: repeating-linear-gradient(
-        0deg,
-        rgba(0, 0, 0, 0.15),
-        rgba(0, 0, 0, 0.15) 1px,
-        transparent 1px,
-        transparent 2px
-    );
-    pointer-events: none;
-    z-index: 9999;
-}
-
-/* 2. Button Glow on Hover */
-a[href*="hf.co"]:hover,
-.demo-button:hover {
-    text-shadow: 
-        0 0 10px #ff7700,
-        0 0 20px #ff7700,
-        0 0 30px #ff7700 !important;
-    box-shadow: 
-        0 0 20px rgba(255, 119, 0, 0.8),
-        inset 0 0 10px rgba(255, 119, 0, 0.4) !important;
-    transition: all 0.3s ease;
-}
-
-/* 3. Cursor Terminale */
-body {
-    cursor: crosshair; /* Fallback se SVG non funziona */
-}
-
-/* 4. Text Selection Arancione */
-::selection {
-    background: #ff7700;
-    color: #000;
-}
-
-::-moz-selection {
-    background: #ff7700;
-    color: #000;
-}
-
-/* 5. Smooth Scroll */
-html {
-    scroll-behavior: smooth;
-}
-
-/* 6. Link Hover Effect */
-a {
-    transition: all 0.3s ease;
-}
-
-a:hover {
-    text-shadow: 0 0 8px currentColor;
-    letter-spacing: 0.05em;
-}
-
-/* 7. Header Pulse Animation */
-h1 {
-    animation: pulse 3s ease-in-out infinite;
-}
-
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.85; }
-}
-
-/* 8. Code Blocks Enhancement */
-code, pre {
-    background: rgba(255, 119, 0, 0.1);
-    border-left: 3px solid #ff7700;
-    padding: 2px 6px;
+  
+  /* Scanlines meno intense su mobile */
+  body::before {
+    opacity: 0.5;
+  }
 }
 
 /* ═══════════════════════════════════════════
-   END ENHANCEMENTS
+   END STYLESHEET
+   Built with 🛡️ by FRIULANIKA CORP.
    ═══════════════════════════════════════════ */
