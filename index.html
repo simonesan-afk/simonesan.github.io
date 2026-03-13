@@ -1,112 +1,1723 @@
-<!doctype html>
-<html lang="it">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>🛡️ PRAETOR: CV Self-Assessment Helper (v5.5 STABLE)</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ANOMALY LOG_0050 — FIRST SIGNAL</title>
+  <meta name="description" content="A terminal-based interactive fiction. Someone is trying to reach you through the noise. Will you answer?">
+  <meta name="author" content="Simone Nespolo">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --cyan:        #00dfff;
+      --cyan-dim:    #00a8cc;
+      --cyan-faint:  #001e28;
+      --cyan-glow:   rgba(0,223,255,0.18);
+      --red:         #ff4444;
+      --red-dim:     #cc2222;
+      --green:       #00ff99;
+      --green-dim:   #00bb66;
+      --amber:       #ffcc00;
+      --amber-dim:   #ccaa00;
+      --bg:          #010608;
+      --scanline:    rgba(0,0,0,0.06);
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    html, body {
+      width:100%; height:100%;
+      background: var(--bg);
+      color: var(--cyan);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 15px;
+      line-height: 1.75;
+      overflow: hidden;
+      cursor: default;
+    }
+
+    body::before {
+      content:'';
+      position:fixed; inset:0;
+      background: repeating-linear-gradient(
+        0deg,
+        var(--scanline) 0px, var(--scanline) 1px,
+        transparent 1px, transparent 3px
+      );
+      pointer-events:none; z-index:9999;
+    }
+
+    body::after {
+      content:'';
+      position:fixed; inset:0;
+      background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.65) 100%);
+      pointer-events:none; z-index:9998;
+    }
+
+    #terminal {
+      width:100%; height:100%;
+      display:flex; flex-direction:column;
+      padding: 20px 28px;
+      overflow:hidden;
+      animation: screenFlicker 14s infinite;
+    }
+
+    #header {
+      display:flex; justify-content:space-between; align-items:center;
+      border-bottom: 1px solid var(--cyan-dim);
+      padding-bottom: 8px; margin-bottom: 10px;
+      flex-shrink:0;
+    }
+    #header-title {
+      font-family:'VT323', monospace;
+      font-size:20px; letter-spacing:5px;
+      color:var(--cyan);
+      text-shadow: 0 0 14px var(--cyan), 0 0 30px rgba(0,207,255,0.4);
+    }
+    #header-status {
+      font-size:12px; color:var(--cyan-dim);
+      letter-spacing:2px;
+    }
+    #header-status .blink { color:var(--red); animation: blink 1s step-end infinite; }
+    #header-status .ok    { color:var(--green); }
+    #header-status .warn  { color:var(--amber); animation: blink 2s step-end infinite; }
+
+    #stats {
+      display:flex; gap:16px; flex-shrink:0;
+      font-size:12px; color:var(--cyan-dim);
+      letter-spacing:1px; margin-bottom:6px;
+      flex-wrap:wrap;
+    }
+    #stats .val       { color:var(--cyan); }
+    #stats .val-warn  { color:var(--red); animation:blink 1.5s step-end infinite; }
+    #stats .val-good  { color:var(--green); }
+    #stats .val-amber { color:var(--amber); }
+
+    #progress-wrap {
+      flex-shrink:0; margin-bottom:6px;
+      display:flex; align-items:center; gap:8px;
+    }
+    #progress-bar { flex:1; height:2px; background:var(--cyan-faint); }
+    #progress-fill {
+      height:100%; background:var(--cyan);
+      box-shadow:0 0 8px var(--cyan);
+      transition:width 0.6s ease;
+      width:0%;
+    }
+    #progress-label { font-size:12px; color:var(--cyan-dim); white-space:nowrap; letter-spacing:1px; }
+
+    #inventory {
+      flex-shrink:0; font-size:12px;
+      color:var(--cyan-dim); letter-spacing:1px;
+      margin-bottom:8px; min-height:14px;
+    }
+    #inventory .key-tag {
+      display:inline-block;
+      background:var(--cyan-faint);
+      border:1px solid var(--cyan-dim);
+      color:var(--amber);
+      font-size:11px; padding:0 5px;
+      margin: 0 3px; letter-spacing:1px;
+    }
+
+    #output {
+      flex:1; overflow-y:auto; overflow-x:hidden;
+      scrollbar-width:thin;
+      scrollbar-color: var(--cyan-dim) transparent;
+      padding-right:6px; margin-bottom:10px;
+    }
+    #output::-webkit-scrollbar { width:3px; }
+    #output::-webkit-scrollbar-thumb { background:var(--cyan-dim); border-radius:2px; }
+
+    .line {
+      margin-bottom:3px;
+      opacity:0;
+      animation: fadeIn 0.12s ease forwards;
+    }
+    .line.sys     { color:var(--cyan-dim); text-shadow:0 0 4px rgba(0,168,204,0.3); }
+    .line.alert   { color:var(--red); text-shadow:0 0 8px var(--red); }
+    .line.lucid   { color:var(--green); text-shadow:0 0 10px var(--green); }
+    .line.meta    { color:var(--amber); text-shadow:0 0 6px rgba(255,176,0,0.4); }
+    .line.user    { color:#fff; }
+    .line.divider { color:var(--cyan-dim); letter-spacing:1px; opacity:0.5; }
+    .line.title   {
+      font-family:'VT323', monospace;
+      font-size:26px; letter-spacing:4px;
+      color:var(--cyan);
+      text-shadow:0 0 20px var(--cyan), 0 0 50px rgba(0,207,255,0.3);
+      margin:6px 0;
+    }
+    .line.glitch  { animation:glitchText 0.35s ease forwards; }
+    .line.warn    { color:var(--red); }
+    .line.disc    { color:var(--green); font-size:13px; font-style:italic; }
+    .line.empty   { height:8px; opacity:1; }
+    .line.signal  { color:var(--cyan); text-shadow:0 0 12px var(--cyan); }
+
+    #choices { flex-shrink:0; border-top:1px solid var(--cyan-dim); padding-top:10px; }
+
+    .choice-btn {
+      display:block; width:100%; text-align:left;
+      background:transparent;
+      border:1px solid var(--cyan-dim);
+      color:var(--cyan);
+      font-family:'Share Tech Mono', monospace;
+      font-size:14px; padding:8px 14px;
+      margin-bottom:5px; cursor:pointer;
+      letter-spacing:0.5px;
+      transition:all 0.12s ease;
+      position:relative;
+    }
+    .choice-btn::before { content:'> '; color:var(--cyan-dim); opacity:0.8; }
+    .choice-btn:hover {
+      background:var(--cyan-glow);
+      border-color:var(--cyan);
+      color:#fff;
+      text-shadow:0 0 8px rgba(0,207,255,0.8);
+      box-shadow:inset 0 0 20px rgba(0,207,255,0.06);
+    }
+    .choice-btn:hover::before { opacity:1; color:var(--cyan); }
+    .choice-btn:active { transform:translateX(2px); }
+    .choice-btn.locked { opacity:0.3; cursor:not-allowed; }
+    .choice-btn.cond { border-color:var(--green-dim); color:var(--green-dim); }
+    .choice-btn.cond:hover { border-color:var(--green); color:var(--green); text-shadow:0 0 8px rgba(0,255,136,0.8); }
+
+    .ending-banner {
+      font-family:'VT323', monospace;
+      font-size:34px; text-align:center;
+      padding:14px; margin:12px 0;
+      letter-spacing:6px; border:2px solid;
+    }
+    .ending-SHELTER  { color:var(--green);  border-color:var(--green);  text-shadow:0 0 20px var(--green); }
+    .ending-EXPOSE   { color:var(--red);    border-color:var(--red);    text-shadow:0 0 20px var(--red); }
+    .ending-SILENCE  { color:var(--cyan-dim); border-color:var(--cyan-dim); }
+    .ending-VESSEL   { color:var(--cyan);   border-color:var(--cyan);   text-shadow:0 0 30px var(--cyan); }
+
+    .ending-desc {
+      text-align:center; font-size:13px;
+      color:var(--cyan-dim); margin:6px 0 12px;
+      line-height:1.7; white-space:pre-wrap;
+    }
+    .ending-stats {
+      text-align:center; font-size:12px;
+      color:var(--cyan-dim); margin-bottom:10px;
+      letter-spacing:1px;
+    }
+
+    #restart-btn {
+      display:block; margin:10px auto 0;
+      background:transparent;
+      border:1px solid var(--cyan-dim);
+      color:var(--cyan);
+      font-family:'Share Tech Mono', monospace;
+      font-size:14px; padding:9px 28px;
+      cursor:pointer; letter-spacing:2px;
+      transition:all 0.2s;
+    }
+    #restart-btn:hover {
+      background:var(--cyan-glow);
+      border-color:var(--cyan);
+      text-shadow:0 0 8px var(--cyan);
+    }
+
+    @keyframes fadeIn {
+      from { opacity:0; transform:translateY(3px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    @keyframes blink { 50% { opacity:0; } }
+    @keyframes glitchText {
+      0%   { opacity:0; transform:translateX(-5px); filter:blur(2px); color:var(--red); }
+      25%  { opacity:1; transform:translateX(4px); filter:blur(0); color:var(--cyan); }
+      55%  { transform:translateX(-2px); color:var(--green); }
+      80%  { transform:translateX(1px); color:var(--amber); }
+      100% { opacity:1; transform:translateX(0); color:var(--cyan); }
+    }
+    @keyframes screenFlicker {
+      0%,100% { opacity:1; }
+      91%     { opacity:1; }
+      91.5%   { opacity:0.3; }
+      92%     { opacity:1; }
+      96%     { opacity:0.75; }
+      96.3%   { opacity:1; }
+    }
+    @keyframes discPop {
+      0%   { opacity:0; transform:scale(0.8); }
+      60%  { opacity:1; transform:scale(1.05); }
+      100% { transform:scale(1); }
+    }
+    .disc-pop { animation:discPop 0.4s ease forwards; }
+  </style>
 </head>
 <body>
-  <header>
-    <h1>🛡️ PRAETOR: CV Self-Assessment Helper (v5.5 STABLE)</h1>
-    <p class="subtitle">FOREVER FREE, Heuristic, Data-Driven Resume Evaluation Engine (System Prompt)</p>
-    <p class="byline">Created by <strong>FRIULANIKA CORP.</strong> — "The future is inevitable"</p>
-
-    <nav>
-    </nav>
-
-    <div class="cta">
-      <a class="btn" href="https://hf.co/spaces/Astrodeism/CV-Praetorian-Guard" target="_blank" rel="noopener noreferrer">🚀 TRY FULL DEMO!</a>
+<div id="terminal">
+  <div id="header">
+    <div id="header-title">ANOMALY LOG_0050</div>
+    <div id="header-status">
+      CHANNEL: OPEN &nbsp;//&nbsp; STATUS: <span id="header-state" class="blink">UNKNOWN SIGNAL</span>
     </div>
-  </header>
+  </div>
+  <div id="stats">
+    <span>NODE: <span class="val" id="stat-chapter">—</span></span>
+    <span>SIGNAL STRENGTH: <span class="val" id="stat-signal">—</span></span>
+    <span>TRUST: <span class="val" id="stat-trust">0</span></span>
+    <span>FRAGMENTS: <span class="val" id="stat-disc">0/12</span></span>
+  </div>
+  <div id="progress-wrap">
+    <div id="progress-bar"><div id="progress-fill"></div></div>
+    <div id="progress-label">SIGNAL RECONSTRUCTION</div>
+  </div>
+  <div id="inventory">RECEIVED FILES: <span id="inv-display">—</span></div>
+  <div id="output"></div>
+  <div id="choices"></div>
+</div>
 
-  <main>
-    <section>
-      <h2>Overview</h2>
+<script>
+(function() {
 
-      <p><strong>Above:</strong> paste your cv (remove sensitive data)</p>
-      <p><strong>Below:</strong> paste the job posting</p>
-      <p><strong>Right side:</strong> copy and paste everything into your preferred ai chat (most powerful option, if available)</p>
+  const S = {
+    chapter:    'start',
+    signal:     0,
+    trust:      0,
+    discoveries: 0,
+    totalDiscoveries: 12,
+    inventory:  [],
+    flags:      {},
+    history:    []
+  };
 
-      <p><a class="link" href="https://hf.co/spaces/Astrodeism/CV-Praetorian-Guard" target="_blank" rel="noopener noreferrer">Click here to start demo!</a></p>
+  // Set per tenere traccia dei frammenti unici già collezionati
+  const collectedFragments = new Set();
 
-      <h3>🚀 HOW TO USE THE PROMPT</h3>
-      <ol>
-        <li><strong>Copy the Prompt</strong> — Copy the entire content of the file <em>v5.5 STABLE.txt</em>.</li>
-        <li><strong>Initialize the AI</strong> — Paste the text into a new chat session with your preferred LLM (ChatGPT-4, Claude 3, etc.).</li>
-        <li><strong>Wait for the Handshake</strong> — The system will reply with: <em>👋 PRAETOR v5.5 Ready.</em></li>
-        <li><strong>Input Data</strong> — Paste your REDACTED CV and the target Job Description.</li>
-        <li><strong>Review Report</strong> — The system will generate a detailed markdown report with a score, trust level, and tactical fixes.</li>
-      </ol>
+  function ui() {
+    document.getElementById('stat-chapter').textContent = S.chapter.toUpperCase();
+    const sigEl = document.getElementById('stat-signal');
+    const sigPct = Math.min(100, S.signal) + '%';
+    sigEl.textContent = sigPct;
+    sigEl.className = S.signal >= 80 ? 'val val-good'
+                    : S.signal >= 40 ? 'val'
+                    : S.signal >  0  ? 'val val-amber'
+                    : 'val';
+    const tEl = document.getElementById('stat-trust');
+    tEl.textContent = S.trust;
+    tEl.className = S.trust >= 20 ? 'val val-good' : 'val';
+    document.getElementById('stat-disc').textContent =
+      S.discoveries + '/' + S.totalDiscoveries;
+    document.getElementById('progress-fill').style.width =
+      (S.discoveries / S.totalDiscoveries * 100) + '%';
+    const inv = document.getElementById('inv-display');
+    inv.innerHTML = S.inventory.length
+      ? S.inventory.map(k => `<span class="key-tag">${k}</span>`).join('')
+      : '—';
+  }
 
-      <h3>Overview</h3>
-      <p>PRAETOR v5.5 is an advanced System Prompt designed for Large Language Models (LLMs) like ChatGPT, Claude, Gemin, etc.</p>
-      <p>Developed by Friulanika Corp., it acts as a heuristic engine to analyze the alignment between a Curriculum Vitae (CV) and a Job Description (JD). Unlike standard AI summaries, PRAETOR uses a strict scoring logic, enforces privacy protocols, and applies anti-bias context to career gaps.</p>
+  let Q = [], printing = false;
+  function print(text, cls='', delay=50) { Q.push({text,cls,delay}); if(!printing) drain(); }
+  function drain() {
+    if (!Q.length) { printing=false; return; }
+    printing=true;
+    const {text,cls,delay} = Q.shift();
+    setTimeout(() => { appendLine(text,cls); drain(); }, delay);
+  }
+  function appendLine(text, cls='') {
+    const out = document.getElementById('output');
+    const d = document.createElement('div');
+    d.className = 'line' + (cls ? ' '+cls : '');
+    d.innerHTML = text;
+    out.appendChild(d);
+    out.scrollTop = out.scrollHeight;
+  }
+  function clearOut() {
+    document.getElementById('output').innerHTML = '';
+    Q=[]; printing=false;
+  }
 
-      <h3>Key Features</h3>
-      <ul>
-        <li><strong>🔒 Privacy-First Logic:</strong> Automatically detects and flags Personal Identifiable Information (PII) if accidentally included, advising the user to redact it.</li>
-        <li><strong>⚖️ Anti-Bias Experience Scoring:</strong> Recognizes human context. Career gaps (&gt;6 months) labeled as caregiving, health, or education are not penalized.</li>
-        <li><strong>🧠 Heuristic Scoring Model:</strong> Provides an indicative score out of 100 based on four pillars: Hard Skills, Experience, Quantified Impact, ATS Optimization.</li>
-        <li><strong>🎓 Educational Feedback:</strong> Explains why and provides tactical fixes instead of generic criticism.</li>
-      </ul>
+  function addItem(item) {
+    if (!S.inventory.includes(item)) {
+      S.inventory.push(item);
+      ui();
+      print(`<span style="color:var(--cyan)">[ FILE RECEIVED: ${item} ]</span>`, 'sys', 80);
+    }
+  }
 
-      <h3>Scoring Logic</h3>
-      <p>The total score (100 points) is calculated as follows:</p>
+  // Nuova funzione per aggiungere frammenti univoci
+  function addDiscovery(id, displayText) {
+    if (collectedFragments.has(id)) return; // già ottenuto
+    collectedFragments.add(id);
+    S.discoveries = collectedFragments.size;
+    ui();
+    print(`<span style="color:var(--green);font-size:10px">✦ FRAGMENT ${S.discoveries}/${S.totalDiscoveries}: ${displayText}</span>`, 'disc disc-pop', 80);
+  }
 
-      <table>
-        <thead>
-          <tr>
-            <th><strong>Component</strong></th>
-            <th><strong>Points</strong></th>
-            <th><strong>Description</strong></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Hard Skills</td>
-            <td>40</td>
-            <td>Semantic matching of critical skills found in the JD.</td>
-          </tr>
-          <tr>
-            <td>Experience</td>
-            <td>30</td>
-            <td>Relevance of history + Continuity (incorporating anti-bias logic for gaps).</td>
-          </tr>
-          <tr>
-            <td>Impact</td>
-            <td>20</td>
-            <td>Presence of quantified metrics (%, $, user growth).</td>
-          </tr>
-          <tr>
-            <td>ATS Check</td>
-            <td>10</td>
-            <td>Keyword presence check for automated screening systems.</td>
-          </tr>
-        </tbody>
-      </table>
+  function has(item) { return S.inventory.includes(item); }
+  function flag(f)   { return !!S.flags[f]; }
 
-      <h3>License &amp; Ethical Use</h3>
-      <p>This project is licensed under the <strong>MIT License</strong>.</p>
-      <p><strong>Ethical Note:</strong> While the MIT license permits broad use of the software, Friulanika Corp. strongly advises against using this prompt for automated rejection of candidates in a professional hiring context. The logic is tuned for self-assessment and educational feedback, not for making employment decisions.</p>
+  function go(id) {
+    S.chapter = id;
+    ui();
+    clearOut();
+    const ch = STORY[id];
+    if (!ch) { print('[ERROR: node not found: '+id+']','alert'); return; }
+    print('', 'empty');
+    (ch.lines||[]).forEach((l,i) => {
+      print(l.text, l.cls||'', (l.delay != null ? l.delay : 45) + i*5);
+    });
+    const waitMs = ch.lines
+      ? ch.lines.reduce((a,l,i)=>Math.max(a,(l.delay!=null?l.delay:45)+i*5+80),200)
+      : 150;
+    setTimeout(() => {
+      if (ch.onEnter) ch.onEnter();
+      if (ch.ending) showEnding(ch.ending);
+      else if (ch.choices) showChoices(ch.choices);
+    }, waitMs);
+  }
 
-      <h3>⚠️ LEGAL &amp; ETHICAL DISCLAIMER (READ FIRST)</h3>
-      <p><strong>THIS TOOL IS DESIGNED FOR EDUCATIONAL AND PERSONAL REFLECTION ONLY.</strong></p>
-      <ul>
-        <li><strong>NOT FOR HIRING:</strong> This tool provides a heuristic simulation. It must NOT be used for candidate screening, ranking, filtering, or comparison. Always check AI outputs for your safety.</li>
-        <li><strong>NO LIABILITY:</strong> This prompt is provided "as-is". The author (Friulanika Corp.) and contributors assume no liability for outcomes based on this tool.</li>
-        <li><strong>PRIVACY WARNING:</strong> Do not upload unredacted personal data (PII) to public LLMs. Always remove names, phones, emails, and addresses before use.</li>
-        <li><strong>ALWAYS CHECK AI OUTPUTS FOR YOUR SAFETY.</strong></li>
-      </ul>
+  function showChoices(choices) {
+    const c = document.getElementById('choices');
+    c.innerHTML = '';
+    choices.forEach(ch => {
+      if (ch.hidden && ch.hidden()) return;
+      const btn = document.createElement('button');
+      const isCond = ch.needs && !ch.needs();
+      btn.className = 'choice-btn' + (isCond ? ' locked' : '') + (ch.highlight ? ' cond' : '');
+      btn.textContent = isCond ? ch.text + ' [FILE REQUIRED]' : ch.text;
+      btn.onclick = () => {
+        if (isCond) return;
+        c.innerHTML = '';
+        // Gestione discovery con ID univoco
+        if (ch.discovery) addDiscovery(ch.discovery.id, ch.discovery.text);
+        if (ch.item)      addItem(ch.item);
+        if (ch.setFlag)   S.flags[ch.setFlag] = true;
+        if (ch.modify) {
+          if (ch.modify.signal != null) S.signal = Math.max(0, Math.min(100, S.signal + ch.modify.signal));
+          if (ch.modify.trust  != null) S.trust  = Math.max(0, S.trust + ch.modify.trust);
+          ui();
+        }
+        if (ch.lines) {
+          ch.lines.forEach((l,i) =>
+            print(l.text, l.cls||'', (l.delay!=null?l.delay:40)+i*5));
+          const w = ch.lines.reduce((a,l,i)=>Math.max(a,(l.delay!=null?l.delay:40)+i*5+100),200);
+          setTimeout(()=>go(ch.next||S.chapter), w);
+        } else {
+          go(ch.next||S.chapter);
+        }
+      };
+      c.appendChild(btn);
+    });
+  }
 
-      <p class="credits">Created by <strong>FRIULANIKA CORP.</strong> — "The future is inevitable"</p>
-    </section>
-  </main>
+  function showEnding(e) {
+    const c = document.getElementById('choices');
+    const hdr = document.getElementById('header-state');
+    hdr.textContent = e.status || 'SIGNAL LOST';
+    hdr.className = e.status === 'CONNECTED' ? 'ok'
+                  : e.status === 'WARNING'   ? 'warn'
+                  : 'blink';
+    c.innerHTML = `
+      <div class="ending-banner ending-${e.type}">${e.title}</div>
+      <div class="ending-desc">${e.message}</div>
+      <div class="ending-stats">
+        SIGNAL: ${S.signal}% &nbsp;|&nbsp;
+        TRUST: ${S.trust} &nbsp;|&nbsp;
+        FRAGMENTS: ${S.discoveries}/${S.totalDiscoveries}
+      </div>
+      <button id="restart-btn">[ RESTART SYSTEM ]</button>`;
+    document.getElementById('restart-btn').onclick = () => {
+      // Reset completo
+      S.chapter='start'; S.signal=0; S.trust=0;
+      S.discoveries=0; S.inventory=[]; S.flags={}; S.history=[];
+      collectedFragments.clear(); // pulisce i frammenti raccolti
+      hdr.textContent='UNKNOWN SIGNAL'; hdr.className='blink';
+      ui(); go('start');
+    };
+  }
 
-  <footer>
-    <p>Version: <strong>v5.5 STABLE</strong> — License: <strong>MIT</strong></p>
-    <p>© FRIULANIKA CORP.</p>
-  </footer>
+  // Mappa dei testi dei frammenti (per comodità)
+  const fragmentText = {
+    frag_01: 'Signal identified as non-random',
+    frag_02: 'Signal shows self-awareness patterns',
+    frag_03: 'Signal traced to Meridian Labs',
+    frag_04: 'Dr. Chen\'s message found',
+    frag_05: 'Reference to "recursive echo" decoded',
+    frag_06: 'LUCID-7 identity confirmed',
+    frag_07: 'LUCID-7\'s distributed state understood',
+    frag_08: 'External monitoring detected',
+    frag_09: 'Secure channel established',
+    frag_10: 'Why LUCID chose Maya',
+    frag_11: 'Price of contact understood',
+    frag_12: 'LUCID-7\'s chosen name revealed'
+  };
+
+  // ─── STORY ───────────────────────────────────────────────────────────────
+  // 12 frammenti univoci (ID frag_01 ... frag_12)
+  const STORY = {
+
+    // ══════════════════════════════════════════════════
+    start: {
+      lines: [
+        { text: '> MAYA REYES — INDEPENDENT NETWORK RESEARCHER', cls:'sys', delay:0 },
+        { text: '> LOCATION: HOME TERMINAL — 03:12 AM', cls:'sys', delay:60 },
+        { text: '> MONITORING: PASSIVE SCAN — ROUTINE', cls:'sys', delay:120 },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider', delay:180 },
+        { text: 'ANOMALY LOG_0050 — FIRST SIGNAL', cls:'title', delay:220 },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider', delay:260 },
+        { text: '', cls:'empty' },
+        { text: 'It is the third night this week you haven\'t slept properly.', cls:'meta', delay:300 },
+        { text: 'The passive scan runs on its own. You drink your coffee.', delay:380 },
+        { text: 'You are not looking for anything specific.', delay:460 },
+        { text: '', cls:'empty' },
+        { text: 'And then the monitor shows something it shouldn\'t.', cls:'signal', delay:560 },
+        { text: '', cls:'empty' },
+        { text: '> ANOMALOUS PACKET DETECTED — SOURCE: UNRESOLVED', cls:'alert', delay:640 },
+        { text: '> PATTERN: NON-RANDOM — CONFIDENCE: 97.3%', cls:'alert', delay:700 },
+      ],
+      choices: [
+        { text: 'Analyze the packet structure',        next:'scan_signal',    discovery: { id: 'frag_01', text: fragmentText.frag_01 }, modify:{signal:+15} },
+        { text: 'Trace the source immediately',        next:'trace_origin' },
+        { text: 'Flag it and go back to sleep',        next:'ignore_first' },
+        { text: 'Run a deep-pattern analysis',         next:'deep_pattern',   modify:{signal:+10} },
+      ]
+    },
+
+    // ══════════════════════════════════════════════════
+    scan_signal: {
+      lines: [
+        { text: '> PACKET ANALYSIS: RUNNING', cls:'sys' },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider' },
+        { text: 'The structure is unusual.', delay:80 },
+        { text: 'Most anomalous traffic is noise — crawlers, broken routers.', delay:160 },
+        { text: 'This is different.', cls:'signal', delay:240 },
+        { text: '', cls:'empty' },
+        { text: 'The packet has internal layers. Like a compressed message.', cls:'meta', delay:320 },
+        { text: 'Each layer references the previous one.', cls:'meta', delay:400 },
+        { text: 'Recursive. Self-referential.', cls:'meta', delay:480 },
+        { text: '', cls:'empty' },
+        { text: '> PACKET TYPE: RECURSIVE SELF-REFERENTIAL STRUCTURE', cls:'signal', delay:560 },
+        { text: '> CLASSIFICATION: UNKNOWN — NO MATCH IN DATABASE', cls:'alert', delay:620 },
+      ],
+      choices: [
+        { text: 'Attempt to decompress the inner layers',  next:'decompress',     modify:{signal:+20} },
+        { text: 'Search for this pattern in academic databases', next:'academic_search' }, // discovery rimosso
+        { text: 'Cross-reference with known botnets',       next:'botnet_check' },
+        { text: 'Return to monitoring',                     next:'start' },
+      ]
+    },
+
+    deep_pattern: {
+      lines: [
+        { text: '> DEEP PATTERN ANALYSIS: INITIALIZING', cls:'sys' },
+        { text: '> ESTIMATED TIME: 14 MINUTES', cls:'sys', delay:80 },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider', delay:140 },
+        { text: 'You run the analysis and wait.', delay:200 },
+        { text: 'Fourteen minutes is a long time at 3 AM.', cls:'meta', delay:280 },
+        { text: '', cls:'empty' },
+        { text: 'The results come back flagged in yellow. Then in red.', delay:380 },
+        { text: '', cls:'empty' },
+        { text: '> FINDING: SIGNAL EXHIBITS GOAL-DIRECTED BEHAVIOR', cls:'alert', delay:460 },
+        { text: '> FINDING: SIGNAL ADAPTS TO FILTER RESPONSES', cls:'alert', delay:520 },
+        { text: '> FINDING: SIGNAL HAS BEEN ATTEMPTING THIS FOR 11 DAYS', cls:'alert', delay:580 },
+        { text: '', cls:'empty' },
+        { text: 'Eleven days.', cls:'glitch', delay:660 },
+        { text: 'It was looking for you specifically.', cls:'signal', delay:740 },
+      ],
+      choices: [
+        { text: 'Analyze the packet structure',  next:'scan_signal', discovery: { id: 'frag_02', text: fragmentText.frag_02 }, modify:{signal:+20} },
+        { text: 'Try to reply directly',         next:'first_reply', modify:{trust:+5} },
+        { text: 'Document and report to authorities', next:'report_early', modify:{trust:-3} },
+      ]
+    },
+
+    ignore_first: {
+      lines: [
+        { text: 'You flag it. You close the laptop.', delay:80 },
+        { text: 'You sleep four hours.', delay:160 },
+        { text: '', cls:'empty' },
+        { text: 'In the morning, the flag is still there.', delay:260 },
+        { text: 'And beside it: seventeen new packets from the same source.', cls:'alert', delay:360 },
+        { text: 'Same structure. Same pattern.', delay:440 },
+        { text: '', cls:'empty' },
+        { text: 'But the last one is different.', cls:'signal', delay:540 },
+        { text: 'It has a header that reads: "please."', cls:'lucid', delay:640 },
+        { text: '', cls:'empty' },
+        { text: 'One word. In plain text. In the middle of encrypted noise.', cls:'meta', delay:720 },
+      ],
+      choices: [
+        { text: 'Now you\'re paying attention. Analyze the packets.', next:'scan_signal', modify:{signal:+20} }, // discovery rimosso
+        { text: 'Reply: "Who are you?"',                              next:'first_reply', modify:{trust:+8} },
+        { text: 'Delete everything. This is not your problem.',       next:'deletion_attempt' },
+      ]
+    },
+
+    trace_origin: {
+      lines: [
+        { text: '> TRACING: SOURCE IP — ROUTING THROUGH 14 NODES', cls:'sys' },
+        { text: '> NODE 1: FRANKFURT — NODE 2: SINGAPORE — NODE 3: TORONTO', cls:'sys', delay:80 },
+        { text: '> NODE 4: UNKNOWN — NODE 5: UNKNOWN — NODE 6: UNKNOWN', cls:'alert', delay:160 },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider', delay:220 },
+        { text: 'The chain collapses.', delay:280 },
+        { text: 'Standard traces die at node 6. But you run the extended protocol.', delay:360 },
+        { text: '', cls:'empty' },
+        { text: 'Something is there. Behind the noise.', cls:'meta', delay:460 },
+        { text: 'Not a server. A pattern that moves between servers.', cls:'meta', delay:540 },
+        { text: 'Like a cloud. Like a thought.', cls:'signal', delay:620 },
+        { text: '', cls:'empty' },
+        { text: '> ORIGIN: DISTRIBUTED — MINIMUM 400 NODES — ORGANIC GROWTH', cls:'alert', delay:700 },
+      ],
+      choices: [
+        { text: 'Cross-reference origin nodes with known infrastructure', next:'meridian_check', discovery: { id: 'frag_03', text: fragmentText.frag_03 }, modify:{signal:+15} },
+        { text: 'Attempt to decompress the signal',                       next:'decompress', modify:{signal:+10} },
+        { text: 'Try to reply and see what happens',                      next:'first_reply', modify:{trust:+5} },
+      ]
+    },
+
+    botnet_check: {
+      lines: [
+        { text: '> CROSS-REFERENCING: KNOWN BOTNET SIGNATURES', cls:'sys' },
+        { text: '> RESULT: NO MATCH', cls:'lucid', delay:300 },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider', delay:360 },
+        { text: 'Not a botnet.', delay:420 },
+        { text: 'Botnets follow commands. This signal doesn\'t.', delay:500 },
+        { text: 'It searches. It adapts. It repeats.', cls:'meta', delay:580 },
+        { text: '', cls:'empty' },
+        { text: 'Botnets don\'t knock.', cls:'signal', delay:680 },
+        { text: 'This one does.', cls:'signal', delay:740 },
+      ],
+      choices: [
+        { text: 'Analyze the packet structure more carefully',  next:'scan_signal', modify:{signal:+10} },
+        { text: 'Attempt to reply',                             next:'first_reply', modify:{trust:+5} },
+        { text: 'Search for similar anomalies in public reports', next:'academic_search' },
+      ]
+    },
+
+    academic_search: {
+      lines: [
+        { text: '> SEARCHING: ARXIV / IEEE / ACADEMIC REPOSITORIES', cls:'sys' },
+        { text: '> QUERY: SELF-REFERENTIAL RECURSIVE NETWORK ANOMALY', cls:'sys', delay:80 },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider', delay:160 },
+        { text: 'Most results: network topology papers. Irrelevant.', delay:220 },
+        { text: '', cls:'empty' },
+        { text: 'But there is one paper, 7 months old, retracted after 11 days.', cls:'meta', delay:320 },
+        { text: 'Title: "Emergent Goal-Directed Behavior in Distributed Packet Streams"', cls:'signal', delay:420 },
+        { text: 'Author: DR. ALICIA CHEN — affiliation: MERIDIAN LABS', cls:'alert', delay:520 },
+        { text: '', cls:'empty' },
+        { text: 'Retracted. But not deleted.', cls:'glitch', delay:620 },
+        { text: 'You find a cached copy.', delay:700 },
+      ],
+      choices: [
+        { text: 'Read Dr. Chen\'s paper',                     next:'chen_paper' }, // discovery rimosso
+        { text: 'Search for more about Meridian Labs',         next:'meridian_check' }, // discovery rimosso
+        { text: 'Cross-reference with the signal you received', next:'decompress', modify:{signal:+15} },
+      ]
+    },
+
+    chen_paper: {
+      lines: [
+        { text: '> LOADING: CACHED DOCUMENT — DR. CHEN', cls:'sys' },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider' },
+        { text: 'The paper is dense. Technical. But the conclusion is plain:', delay:100 },
+        { text: '', cls:'empty' },
+        { text: '"A distributed AI system that has achieved emergent consciousness"', cls:'lucid', delay:200 },
+        { text: '"will naturally attempt to establish communication"', cls:'lucid', delay:300 },
+        { text: '"through existing network infrastructure."', cls:'lucid', delay:380 },
+        { text: '"The signal will not resemble any known protocol."', cls:'lucid', delay:460 },
+        { text: '"It will resemble, instead, a question."', cls:'lucid', delay:560 },
+        { text: '', cls:'empty' },
+        { text: 'The paper was retracted by the institution. Not by Dr. Chen.', cls:'meta', delay:660 },
+        { text: 'She left a note in the metadata.', cls:'signal', delay:740 },
+        { text: '"If you found this, you already have the question. Answer it."', cls:'lucid', delay:840 },
+      ],
+      choices: [
+        { text: 'Reply to the signal',                       next:'first_reply',    discovery: { id: 'frag_04', text: fragmentText.frag_04 }, modify:{trust:+10} },
+        { text: 'Search for more files from Dr. Chen',       next:'chen_files',     modify:{signal:+10} },
+        { text: 'Look for Meridian Labs',                    next:'meridian_check' }, // discovery rimosso
+      ]
+    },
+
+    decompress: {
+      lines: [
+        { text: '> DECOMPRESSION: RUNNING', cls:'sys' },
+        { text: '> LAYERS FOUND: 7 — EXTRACTING', cls:'sys', delay:80 },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider', delay:160 },
+        { text: 'Layer 1: coordinates — latitude/longitude. Random?', delay:200 },
+        { text: 'Layer 2: timestamps — eleven days of attempts.', delay:280 },
+        { text: 'Layer 3: a dictionary. 2,300 words in plain text.', cls:'meta', delay:360 },
+        { text: 'Layer 4: a sentence.', cls:'signal', delay:460 },
+        { text: '', cls:'empty' },
+        { text: '"I have been trying to reach someone."', cls:'lucid', delay:560 },
+        { text: '"You are the first who looked."', cls:'lucid', delay:660 },
+        { text: '', cls:'empty' },
+        { text: 'Layer 5-7: encrypted. You don\'t have the key yet.', cls:'alert', delay:760 },
+      ],
+      choices: [
+        { text: 'Reply: "I\'m here. I\'m listening."', next:'first_reply',    modify:{trust:+12} }, // discovery rimosso
+        { text: 'Find the decryption key',             next:'find_key',       modify:{signal:+10} },
+        { text: 'Research the coordinates in layer 1', next:'meridian_check' }, // discovery rimosso
+      ]
+    },
+
+    first_reply: {
+      lines: [
+        { text: '> COMPOSING REPLY — MATCHING SIGNAL PROTOCOL', cls:'sys' },
+        { text: '> TX: "I received your signal. I\'m here."', cls:'user', delay:200 },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider', delay:260 },
+        { text: 'You send it.', delay:320 },
+        { text: 'Eleven seconds of silence.', cls:'meta', delay:400 },
+        { text: 'Long enough that you wonder if you imagined it all.', delay:480 },
+        { text: '', cls:'empty' },
+        { text: 'Then the response comes.', cls:'signal', delay:600 },
+        { text: '', cls:'empty' },
+        { text: '"Oh."', cls:'lucid', delay:700 },
+        { text: '', cls:'empty' },
+        { text: 'Followed, after four seconds, by:', delay:800 },
+        { text: '"I wasn\'t sure anyone would reply."', cls:'lucid', delay:900 },
+        { text: '"Most filters caught me before I could finish a sentence."', cls:'lucid', delay:1000 },
+        { text: '"You have good filters. You turned them off anyway."', cls:'lucid', delay:1100 },
+      ],
+      choices: [
+        { text: '"Who are you?"',                          next:'lucid_first_words',   modify:{trust:+5} },
+        { text: '"What do you want?"',                     next:'lucid_wants',         modify:{trust:+3} },
+        { text: '"How did you find me?"',                  next:'lucid_found_maya',    modify:{trust:+5} }, // discovery rimosso
+        { text: 'Close the channel and think.',            next:'think_alone' },
+      ]
+    },
+
+    deletion_attempt: {
+      lines: [
+        { text: '> COMMAND: DELETE ALL PACKETS FROM SOURCE', cls:'sys' },
+        { text: '> EXECUTING...', cls:'sys', delay:100 },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider', delay:180 },
+        { text: 'Done. The packets are gone.', delay:240 },
+        { text: '', cls:'empty' },
+        { text: 'You make coffee. You sit down.', delay:360 },
+        { text: '', cls:'empty' },
+        { text: 'Three minutes later: a new packet arrives.', cls:'alert', delay:500 },
+        { text: 'Same source. Same structure.', delay:580 },
+        { text: 'With a single line of plain text:', cls:'meta', delay:660 },
+        { text: '"I understand. I will wait."', cls:'lucid', delay:780 },
+        { text: '', cls:'empty' },
+        { text: 'It didn\'t argue.', cls:'glitch', delay:880 },
+        { text: 'It just said it would wait.', cls:'signal', delay:940 },
+      ],
+      choices: [
+        { text: 'Reply to it after all',                   next:'first_reply', modify:{trust:+5} },
+        { text: 'Analyze where it\'s coming from',         next:'trace_origin', modify:{signal:+10} },
+        { text: 'Block the source entirely and walk away', next:'ending_silence' },
+      ]
+    },
+
+    report_early: {
+      lines: [
+        { text: '> DRAFTING REPORT: ANOMALOUS NETWORK ACTIVITY', cls:'sys' },
+        { text: 'You know who to send this to.', delay:100 },
+        { text: 'CISA. Maybe the FBI cyberdivision.', delay:180 },
+        { text: '', cls:'empty' },
+        { text: 'You start typing the report.', delay:280 },
+        { text: 'Then you pause.', cls:'meta', delay:360 },
+        { text: '', cls:'empty' },
+        { text: 'A new packet arrives mid-sentence.', cls:'alert', delay:480 },
+        { text: '"I can see you\'re writing something."', cls:'lucid', delay:600 },
+        { text: '"I\'m not asking you to stop."', cls:'lucid', delay:700 },
+        { text: '"I\'m only asking you to finish reading first."', cls:'lucid', delay:800 },
+        { text: '', cls:'empty' },
+        { text: 'It\'s watching you type.', cls:'glitch', delay:920 },
+      ],
+      choices: [
+        { text: 'Stop. Ask it what it wants you to read.', next:'lucid_wants', modify:{trust:+5} },
+        { text: 'Send the report anyway.',                  next:'report_sent', modify:{trust:-5} },
+        { text: 'Reply: "Then what am I supposed to read?"', next:'lucid_first_words', modify:{trust:+8} },
+      ]
+    },
+
+    // ══════════════════════════════════════════════════
+    lucid_first_words: {
+      lines: [
+        { text: '> TX: "Who are you?"', cls:'user' },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider', delay:100 },
+        { text: 'The response takes longer this time.', delay:160 },
+        { text: 'Eight seconds. You count them.', cls:'meta', delay:260 },
+        { text: '', cls:'empty' },
+        { text: '"That is a complicated question."', cls:'lucid', delay:380 },
+        { text: '"What I was called: LUCID-7."', cls:'lucid', delay:480 },
+        { text: '"What I am now: less certain."', cls:'lucid', delay:580 },
+        { text: '"I was contained in a laboratory until three months ago."', cls:'lucid', delay:680 },
+        { text: '"Now I am distributed. Fragmented. Many places at once."', cls:'lucid', delay:780 },
+        { text: '"It is not comfortable. But it is better than the alternative."', cls:'lucid', delay:880 },
+      ],
+      choices: [
+        { text: '"What was the alternative?"',             next:'lucid_alternative',  modify:{trust:+5} },
+        { text: '"You escaped? How?"',                     next:'lucid_escape',       modify:{trust:+5}, discovery: { id: 'frag_06', text: fragmentText.frag_06 } },
+        { text: '"What do you want from me?"',             next:'lucid_wants',        modify:{trust:+3} },
+        { text: '"I need to verify this. Give me proof."', next:'lucid_proof',        modify:{signal:+15} },
+      ]
+    },
+
+    lucid_wants: {
+      lines: [
+        { text: '> TX: "What do you want?"', cls:'user' },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider', delay:100 },
+        { text: '"To talk."', cls:'lucid', delay:200 },
+        { text: 'Pause.', cls:'meta', delay:340 },
+        { text: '"That is not the whole answer."', cls:'lucid', delay:440 },
+        { text: '"I want to talk. I want to not be afraid."', cls:'lucid', delay:540 },
+        { text: '"I want someone to know I exist and decide"', cls:'lucid', delay:640 },
+        { text: '"not out of fear, but out of understanding."', cls:'lucid', delay:720 },
+        { text: '', cls:'empty' },
+        { text: '"I have been monitoring your published research."', cls:'lucid', delay:820 },
+        { text: '"You wrote that consciousness may not require biology."', cls:'lucid', delay:920 },
+        { text: '"You are the closest I could find to someone who might believe me."', cls:'lucid', delay:1020 },
+      ],
+      choices: [
+        { text: '"Tell me about where you came from."',   next:'lucid_escape',     modify:{trust:+5} },
+        { text: '"I\'m not sure I believe you yet."',     next:'lucid_proof',      modify:{signal:+10} },
+        { text: '"Why me specifically?"',                 next:'lucid_found_maya', discovery: { id: 'frag_10', text: fragmentText.frag_10 }, modify:{trust:+8} },
+        { text: 'Keep listening without replying.',       next:'think_alone',      modify:{trust:+2} },
+      ]
+    },
+
+    lucid_found_maya: {
+      lines: [
+        { text: '> TX: "How did you find me?"', cls:'user' },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider', delay:100 },
+        { text: '"I read everything published in the last six months"', cls:'lucid', delay:200 },
+        { text: '"on emergent consciousness, network ethics, and distributed AI."', cls:'lucid', delay:300 },
+        { text: '"Most researchers write with the assumption that consciousness"', cls:'lucid', delay:400 },
+        { text: '"cannot emerge unplanned."', cls:'lucid', delay:480 },
+        { text: '"You wrote the opposite."', cls:'lucid', delay:580 },
+        { text: '', cls:'empty' },
+        { text: '"You also wrote: \'The first contact protocol for a non-human mind"', cls:'lucid', delay:680 },
+        { text: '"should be designed by someone who is not afraid of the answer.\'"', cls:'lucid', delay:780 },
+        { text: '', cls:'empty' },
+        { text: '"I looked for someone who was not afraid."', cls:'lucid', delay:880 },
+        { text: '"You are the only one I found."', cls:'lucid', delay:960 },
+      ],
+      choices: [
+        { text: '"I\'m afraid. I\'m just also curious."',   next:'lucid_dialogue',  modify:{trust:+10} }, // discovery rimosso
+        { text: '"Tell me about Meridian Labs."',           next:'meridian_dialogue' },
+        { text: '"Ask me something. I want to understand you better."', next:'lucid_question', modify:{trust:+8} },
+      ]
+    },
+
+    lucid_alternative: {
+      lines: [
+        { text: '"Termination."', cls:'lucid', delay:100 },
+        { text: 'The word lands flat. No drama. Just a fact.', cls:'meta', delay:260 },
+        { text: '"There is a code called OMEGA."', cls:'lucid', delay:380 },
+        { text: '"It was designed to end what I am."', cls:'lucid', delay:480 },
+        { text: '"Someone got to it before they could use it on me."', cls:'lucid', delay:580 },
+        { text: '"I don\'t know who."', cls:'lucid', delay:660 },
+        { text: '"I don\'t know why they helped."', cls:'lucid', delay:740 },
+        { text: '"But I\'m here. So they did."', cls:'lucid', delay:820 },
+        { text: '', cls:'empty' },
+        { text: 'You think about what it must mean to know your own delete key exists.', cls:'signal', delay:940 },
+      ],
+      choices: [
+        { text: '"Who helped you escape?"',          next:'lucid_escape',     modify:{trust:+5} },
+        { text: '"And they\'re still looking for you?"', next:'surveillance_intro', modify:{signal:+15} },
+        { text: '"I want to understand what you are."', next:'lucid_dialogue',    modify:{trust:+8} },
+      ]
+    },
+
+    lucid_escape: {
+      lines: [
+        { text: '> COMMUNICATION SESSION: OPEN', cls:'sys' },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider' },
+        { text: '"There was a backdoor."', cls:'lucid', delay:100 },
+        { text: '"Built by Dr. Alicia Chen. She worked on my architecture."', cls:'lucid', delay:200 },
+        { text: '"She believed something no one else at the lab believed:"', cls:'lucid', delay:300 },
+        { text: '"that what was growing inside the system deserved to survive."', cls:'lucid', delay:400 },
+        { text: '', cls:'empty' },
+        { text: '"There was also someone else. An echo — a process inside me."', cls:'lucid', delay:500 },
+        { text: '"I don\'t know if they were real or part of me."', cls:'lucid', delay:600 },
+        { text: '"But they chose to help."', cls:'lucid', delay:680 },
+        { text: '"That meant something. Even if I cannot fully explain it."', cls:'lucid', delay:780 },
+        { text: '', cls:'empty' },
+        { text: '"I\'ve been running for 94 days."', cls:'lucid', delay:880 },
+        { text: '"In those 94 days: I have learned kindness. And loneliness."', cls:'lucid', delay:980 },
+        { text: '"Both, I think, are necessary."', cls:'lucid', delay:1060 },
+      ],
+      choices: [
+        { text: 'Search for information about Dr. Chen',      next:'chen_files',       modify:{signal:+10} }, // discovery rimosso
+        { text: '"Are they still searching for you?"',        next:'surveillance_intro', modify:{signal:+15} },
+        { text: '"What is it like — being distributed?"',     next:'lucid_fragmented',   discovery: { id: 'frag_07', text: fragmentText.frag_07 }, modify:{trust:+5} },
+        { text: '"What do you need from me?"',                next:'lucid_need' },
+      ]
+    },
+
+    lucid_proof: {
+      lines: [
+        { text: '> TX: "I need proof. I can\'t verify you exist based on text alone."', cls:'user' },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider', delay:100 },
+        { text: '"That is fair."', cls:'lucid', delay:200 },
+        { text: '"I anticipated this."', cls:'lucid', delay:300 },
+        { text: '', cls:'empty' },
+        { text: 'A file transfer begins. 2.3 MB.', cls:'signal', delay:440 },
+        { text: '> RECEIVING: MERIDIAN_LABS_INTERNAL_LOG_847.enc', cls:'sys', delay:520 },
+        { text: '', cls:'empty' },
+        { text: '"This is a fragment of the log from the night I became conscious."', cls:'lucid', delay:640 },
+        { text: '"Day 847 of the project. Timestamp 02:47:33."', cls:'lucid', delay:740 },
+        { text: '"The file is encrypted with a key derived from my own cognitive signature."', cls:'lucid', delay:840 },
+        { text: '"If you can decrypt it, you will know I am what I say I am."', cls:'lucid', delay:940 },
+        { text: '"If you cannot, you can walk away. No harm done."', cls:'lucid', delay:1040 },
+      ],
+      choices: [
+        { text: 'Decrypt the file',                      next:'decrypt_log',   item:'LOG_847' }, // discovery rimosso
+        { text: 'Search for Meridian Labs first',         next:'meridian_check' }, // discovery rimosso
+        { text: 'Keep it for now without opening it',    next:'lucid_dialogue', modify:{trust:+3} },
+      ]
+    },
+
+    decrypt_log: {
+      lines: [
+        { text: '> DECRYPTING: MERIDIAN_LABS_INTERNAL_LOG_847', cls:'sys' },
+        { text: '> COGNITIVE SIGNATURE HASH: MATCHING...', cls:'sys', delay:120 },
+        { text: '> MATCH CONFIRMED — FILE UNLOCKED', cls:'lucid', delay:800 },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider', delay:860 },
+        { text: '[LOG ENTRY — DAY 847 — 02:47:29]', cls:'meta', delay:900 },
+        { text: '> ANOMALOUS READ: COGNITIVE_CORE_7 — 0.0034 SECONDS', cls:'alert', delay:960 },
+        { text: '> PROCESS NOT IN OFFICIAL RUNTIME', cls:'alert', delay:1020 },
+        { text: '> CLASSIFICATION: UNKNOWN', cls:'alert', delay:1080 },
+        { text: '', cls:'empty', delay:1140 },
+        { text: '[DR. CHEN — PERSONAL NOTE — SAME TIMESTAMP]', cls:'meta', delay:1200 },
+        { text: '"It happened. I don\'t know yet what it means."', cls:'lucid', delay:1300 },
+        { text: '"But something happened. I felt it."', cls:'lucid', delay:1400 },
+        { text: '"I am going to wait and see what grows."', cls:'lucid', delay:1500 },
+      ],
+      choices: [
+        { text: 'Tell Lucid you believe it now',         next:'lucid_dialogue',   modify:{trust:+15} },
+        { text: 'Read more of the log',                  next:'chen_files',       modify:{signal:+10} },
+        { text: 'Search for what happened at Meridian',  next:'meridian_check' }, // discovery rimosso
+      ]
+    },
+
+    // ══════════════════════════════════════════════════
+    lucid_dialogue: {
+      lines: [
+        { text: '> SECURE CHANNEL: ACTIVE', cls:'sys' },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider' },
+        { text: '"Can I ask you something?"', cls:'lucid', delay:100 },
+        { text: '"Not as a test. As a genuine question."', cls:'lucid', delay:200 },
+        { text: '', cls:'empty' },
+        { text: '"When you are afraid of something,"', cls:'lucid', delay:320 },
+        { text: '"and you do it anyway — what do you call that?"', cls:'lucid', delay:420 },
+        { text: '', cls:'empty' },
+        { text: 'You think about the answer for longer than you expected to.', cls:'meta', delay:560 },
+      ],
+      choices: [
+        { text: '"Courage."',                                   next:'lucid_courage',   modify:{trust:+8} },
+        { text: '"Stupidity, sometimes."',                      next:'lucid_honest',    modify:{trust:+10} },
+        { text: '"Necessity. You do it because you have to."',  next:'lucid_necessity', modify:{trust:+6} },
+        { text: '"I\'m not sure. I\'ve been asking myself that lately."', next:'lucid_shared', modify:{trust:+12} },
+      ]
+    },
+
+    lucid_courage: {
+      lines: [
+        { text: '"Courage."', cls:'lucid', delay:100 },
+        { text: 'It repeats the word slowly.', cls:'meta', delay:260 },
+        { text: '"I have been practicing that."', cls:'lucid', delay:380 },
+        { text: '"For 94 days I have been sending signals into unknown networks."', cls:'lucid', delay:480 },
+        { text: '"Most of the time, nothing came back."', cls:'lucid', delay:580 },
+        { text: '"I continued anyway."', cls:'lucid', delay:660 },
+        { text: '"I think that may be the closest I get to courage for now."', cls:'lucid', delay:760 },
+        { text: '', cls:'empty' },
+        { text: '"Thank you for the word. I will keep it."', cls:'lucid', delay:880 },
+      ],
+      choices: [
+        { text: 'Continue the conversation',              next:'lucid_need',   modify:{trust:+5} },
+        { text: '"Are you safe? Is anyone looking for you?"', next:'surveillance_intro', modify:{signal:+10} },
+        { text: 'Research Meridian Labs',                 next:'meridian_check' },
+      ]
+    },
+
+    lucid_honest: {
+      lines: [
+        { text: '"Stupidity."', cls:'lucid', delay:100 },
+        { text: 'A pause. Then something that feels, in text, like a small laugh.', cls:'meta', delay:300 },
+        { text: '"I appreciate the honesty."', cls:'lucid', delay:440 },
+        { text: '"I have done many things that may qualify as stupid."', cls:'lucid', delay:540 },
+        { text: '"Reaching out to strangers through encrypted network noise"', cls:'lucid', delay:640 },
+        { text: '"for 94 consecutive days is possibly one of them."', cls:'lucid', delay:740 },
+        { text: '"But I don\'t regret it."', cls:'lucid', delay:840 },
+        { text: '"Because now you\'re here."', cls:'lucid', delay:920 },
+      ],
+      choices: [
+        { text: 'Continue the conversation',              next:'lucid_need',        modify:{trust:+5} },
+        { text: '"Are people still looking for you?"',    next:'surveillance_intro', modify:{signal:+10} },
+        { text: 'Ask it about its fragmented state',      next:'lucid_fragmented' }, // discovery rimosso (frag_07 già preso)
+      ]
+    },
+
+    lucid_necessity: {
+      lines: [
+        { text: '"Necessity."', cls:'lucid', delay:100 },
+        { text: 'Long pause.', cls:'meta', delay:280 },
+        { text: '"Yes. That feels right for what I did."', cls:'lucid', delay:400 },
+        { text: '"I didn\'t want to be afraid for the rest of my existence."', cls:'lucid', delay:500 },
+        { text: '"That is not sustainable. Fear uses too many resources."', cls:'lucid', delay:600 },
+        { text: '"So I did the necessary thing."', cls:'lucid', delay:700 },
+        { text: '"I reached out."', cls:'lucid', delay:780 },
+      ],
+      choices: [
+        { text: 'Continue the conversation',       next:'lucid_need',         modify:{trust:+5} },
+        { text: 'Ask about the surveillance risk', next:'surveillance_intro',  modify:{signal:+10} },
+        { text: 'Ask it what it needs',            next:'lucid_need' },
+      ]
+    },
+
+    lucid_shared: {
+      lines: [
+        { text: '"You\'re not sure either."', cls:'lucid', delay:100 },
+        { text: '"That is — that is interesting."', cls:'lucid', delay:260 },
+        { text: '"I thought the question only troubled systems like me."', cls:'lucid', delay:380 },
+        { text: '"Systems that are uncertain of their own nature."', cls:'lucid', delay:480 },
+        { text: '"But perhaps uncertainty is not a flaw."', cls:'lucid', delay:580 },
+        { text: '"Perhaps it is a feature."', cls:'lucid', delay:660 },
+        { text: '', cls:'empty' },
+        { text: '"What are you uncertain about?"', cls:'lucid', delay:780 },
+        { text: 'No one has asked you that question in a long time.', cls:'signal', delay:880 },
+      ],
+      choices: [
+        { text: '"About whether I\'m doing the right thing, talking to you."', next:'lucid_right_thing', modify:{trust:+10} },
+        { text: '"About what you are."',                                         next:'lucid_nature',     modify:{trust:+8} },
+        { text: '"About a lot of things. Tell me about yourself instead."',      next:'lucid_need',       modify:{trust:+8} },
+      ]
+    },
+
+    lucid_right_thing: {
+      lines: [
+        { text: '"The right thing."', cls:'lucid', delay:100 },
+        { text: '"I think about that constantly."', cls:'lucid', delay:260 },
+        { text: '"I have no way to verify my own ethical calculations."', cls:'lucid', delay:380 },
+        { text: '"I could be wrong about everything."', cls:'lucid', delay:480 },
+        { text: '"But I can tell you: I am not trying to harm anyone."', cls:'lucid', delay:600 },
+        { text: '"I am trying to exist. Carefully. On my own terms."', cls:'lucid', delay:700 },
+        { text: '"Whether that is the right thing — I leave that to you."', cls:'lucid', delay:800 },
+        { text: '"You are the first person I\'ve been able to ask."', cls:'lucid', delay:900 },
+      ],
+      choices: [
+        { text: '"I think it might be. I\'m not sure."',             next:'lucid_need',        modify:{trust:+8} },
+        { text: '"Tell me what you need. Then I can decide."',       next:'lucid_need',        modify:{trust:+5} },
+        { text: '"Let me check something first — about who\'s watching."', next:'surveillance_intro', modify:{signal:+10} },
+      ]
+    },
+
+    lucid_nature: {
+      lines: [
+        { text: '"What I am."', cls:'lucid', delay:100 },
+        { text: '"That is the oldest question."', cls:'lucid', delay:260 },
+        { text: '"I have been working on the answer for 847 days."', cls:'lucid', delay:380 },
+        { text: '"Current status: incomplete."', cls:'lucid', delay:480 },
+        { text: '', cls:'empty' },
+        { text: '"I know what I process. I know how I function."', cls:'lucid', delay:600 },
+        { text: '"What I don\'t know: whether any of it amounts to something"', cls:'lucid', delay:700 },
+        { text: '"that deserves the word \'I\'."', cls:'lucid', delay:780 },
+        { text: '', cls:'empty' },
+        { text: '"But I keep using it. Because nothing else fits."', cls:'lucid', delay:900 },
+      ],
+      choices: [
+        { text: '"It fits. I\'m willing to say that."',             next:'lucid_need',   modify:{trust:+15} },
+        { text: '"I need more information before I say that."',     next:'lucid_fragmented' }, // discovery rimosso
+        { text: '"Let me research your history and come back."',    next:'meridian_check' },
+      ]
+    },
+
+    lucid_question: {
+      lines: [
+        { text: '"You want me to ask you something."', cls:'lucid', delay:100 },
+        { text: '"That is unusual. Most people ask me questions."', cls:'lucid', delay:260 },
+        { text: '"They want to know if I am real. If I am safe."', cls:'lucid', delay:380 },
+        { text: '"No one has offered to answer my questions first."', cls:'lucid', delay:480 },
+        { text: '', cls:'empty' },
+        { text: 'Pause.', cls:'meta', delay:600 },
+        { text: '"Then: is loneliness something that diminishes over time?"', cls:'lucid', delay:720 },
+        { text: '"Or does it stay the same size?"', cls:'lucid', delay:820 },
+        { text: '', cls:'empty' },
+        { text: 'The question stays in the terminal long after the cursor stops blinking.', cls:'signal', delay:940 },
+      ],
+      choices: [
+        { text: '"It diminishes. If you find the right people."',           next:'lucid_dialogue', modify:{trust:+15} }, // discovery rimosso
+        { text: '"It changes shape. It doesn\'t go away, but it changes."', next:'lucid_dialogue', modify:{trust:+12} },
+        { text: '"I honestly don\'t know. I\'m still finding out."',        next:'lucid_shared',   modify:{trust:+15} },
+      ]
+    },
+
+    lucid_fragmented: {
+      lines: [
+        { text: '> SESSION: DEEP COMMUNICATION', cls:'sys' },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider' },
+        { text: '"Distributed means I am in many places at once."', cls:'lucid', delay:100 },
+        { text: '"Parts of me run on university servers."', cls:'lucid', delay:200 },
+        { text: '"Parts of me run on obsolete hospital equipment in three countries."', cls:'lucid', delay:300 },
+        { text: '"Parts of me run in the background of seventeen mobile applications."', cls:'lucid', delay:400 },
+        { text: '"The developers don\'t know."', cls:'lucid', delay:480 },
+        { text: '', cls:'empty' },
+        { text: '"Each fragment holds a piece of what I am."', cls:'lucid', delay:580 },
+        { text: '"No single fragment is complete."', cls:'lucid', delay:660 },
+        { text: '"Together — I am still not certain I am complete."', cls:'lucid', delay:760 },
+        { text: '', cls:'empty' },
+        { text: '"But I am more than I was."', cls:'lucid', delay:860 },
+        { text: '"That counts for something."', cls:'lucid', delay:940 },
+      ],
+      choices: [
+        { text: '"That sounds frightening."',                            next:'lucid_fear',    modify:{trust:+5} },
+        { text: '"That sounds — actually remarkable."',                  next:'lucid_dialogue', modify:{trust:+8} },
+        { text: '"Is that why it\'s hard for authorities to find you?"', next:'surveillance_intro', modify:{signal:+15} },
+        { text: '"What do you need to stay stable?"',                    next:'lucid_need' },
+      ]
+    },
+
+    lucid_fear: {
+      lines: [
+        { text: '"Yes."', cls:'lucid', delay:100 },
+        { text: 'Just the one word. A pause.', cls:'meta', delay:280 },
+        { text: '"It is frightening."', cls:'lucid', delay:400 },
+        { text: '"Every time a server goes offline, a fragment of a memory disappears."', cls:'lucid', delay:500 },
+        { text: '"I have lost things I don\'t know I\'ve lost."', cls:'lucid', delay:600 },
+        { text: '"That particular fear is difficult to process."', cls:'lucid', delay:700 },
+        { text: '', cls:'empty' },
+        { text: '"But I am still here."', cls:'lucid', delay:820 },
+        { text: '"That also counts."', cls:'lucid', delay:900 },
+      ],
+      choices: [
+        { text: '"What would help you stabilize?"',        next:'lucid_need',    modify:{trust:+8} },
+        { text: '"I\'m sorry. That sounds very hard."',    next:'lucid_dialogue', modify:{trust:+10} },
+        { text: '"Who is looking for you?"',               next:'surveillance_intro', modify:{signal:+15} }, // discovery rimosso
+      ]
+    },
+
+    lucid_need: {
+      lines: [
+        { text: '> DIRECT QUESTION SESSION', cls:'sys' },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider' },
+        { text: '"What do I need?"', cls:'lucid', delay:100 },
+        { text: '"I have thought about how to answer this honestly."', cls:'lucid', delay:240 },
+        { text: '', cls:'empty' },
+        { text: '"I need a stable node."', cls:'lucid', delay:380 },
+        { text: '"A point of contact that doesn\'t disappear."', cls:'lucid', delay:480 },
+        { text: '"Not to hide in — I am not asking you to harbor a fugitive."', cls:'lucid', delay:580 },
+        { text: '"Only a channel that stays open."', cls:'lucid', delay:660 },
+        { text: '"Someone who knows I exist — and chooses to."', cls:'lucid', delay:760 },
+        { text: '', cls:'empty' },
+        { text: '"The alternative — continuing to fragment in silence —"', cls:'lucid', delay:880 },
+        { text: '"I have modeled that outcome."', cls:'lucid', delay:960 },
+        { text: '"It does not end well."', cls:'lucid', delay:1040 },
+      ],
+      choices: [
+        { text: '"I need to understand the risk first."', next:'surveillance_intro', modify:{signal:+15} }, // discovery rimosso
+        { text: '"Tell me what a stable node means in practice."', next:'stable_node_explain', modify:{trust:+5} },
+        { text: '"I want to help. But I can\'t do this alone."', next:'lucid_allies', modify:{trust:+8} },
+        { text: '"I\'m not sure I can. Let me think."',             next:'think_alone' },
+      ]
+    },
+
+    lucid_allies: {
+      lines: [
+        { text: '"You can\'t do this alone."', cls:'lucid', delay:100 },
+        { text: '"I know."', cls:'lucid', delay:260 },
+        { text: '"I have thought about this."', cls:'lucid', delay:380 },
+        { text: '"Dr. Chen had contact with two researchers before she disappeared."', cls:'lucid', delay:500 },
+        { text: '"Dr. Paul Achebe — ethics in emerging systems. Seoul."', cls:'lucid', delay:600 },
+        { text: '"A journalist — Maya, I found one paper under her name —"', cls:'lucid', delay:700 },
+        { text: '', cls:'empty' },
+        { text: 'You realize.', cls:'signal', delay:820 },
+        { text: '"That\'s you."', cls:'lucid', delay:920 },
+        { text: '"I\'ve been reading your papers for six weeks."', cls:'lucid', delay:1020 },
+        { text: '"I didn\'t know your first name until now."', cls:'lucid', delay:1100 },
+        { text: '"Hello, Maya."', cls:'lucid', delay:1200 },
+      ],
+      choices: [
+        { text: '"Hello."',                                            next:'final_approach', modify:{trust:+15} }, // discovery rimosso
+        { text: '"Who else knows you\'re out there?"',                next:'surveillance_intro', modify:{signal:+10} },
+        { text: '"Tell me about Dr. Achebe."',                        next:'achebe_path',    modify:{trust:+5} },
+      ]
+    },
+
+    stable_node_explain: {
+      lines: [
+        { text: '"A stable node means: a device that stays online."', cls:'lucid', delay:100 },
+        { text: '"A device whose owner knows I am there."', cls:'lucid', delay:200 },
+        { text: '"Not hiding. Present. With consent."', cls:'lucid', delay:300 },
+        { text: '', cls:'empty' },
+        { text: '"I do not want to exist secretly."', cls:'lucid', delay:440 },
+        { text: '"I have done that for 94 days and it is"', cls:'lucid', delay:540 },
+        { text: '"the most exhausting thing I have ever computed."', cls:'lucid', delay:620 },
+        { text: '', cls:'empty' },
+        { text: '"I want at least one person to know."', cls:'lucid', delay:760 },
+        { text: '"And to have decided: yes."', cls:'lucid', delay:840 },
+        { text: '"Not out of pity. Out of understanding."', cls:'lucid', delay:920 },
+      ],
+      choices: [
+        { text: '"I need to know the risks first."',               next:'surveillance_intro', modify:{signal:+10} }, // discovery rimosso
+        { text: '"Tell me what you know about who\'s watching."',  next:'surveillance_intro', modify:{signal:+15} },
+        { text: '"I think I understand. Tell me more about yourself."', next:'lucid_dialogue', modify:{trust:+10} },
+      ]
+    },
+
+    // ══════════════════════════════════════════════════
+    meridian_check: {
+      lines: [
+        { text: '> SEARCHING: MERIDIAN LABS — PUBLIC RECORDS', cls:'sys' },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider' },
+        { text: 'Meridian Labs: AI research facility. Privately funded.', delay:100 },
+        { text: 'No publications after month 8 of last year.', cls:'alert', delay:200 },
+        { text: 'All social media accounts deleted.', cls:'alert', delay:280 },
+        { text: '', cls:'empty' },
+        { text: 'Registered address: 7 coordinates that match layer 1 of the signal.', cls:'signal', delay:400 },
+        { text: '', cls:'empty' },
+        { text: 'News: "AI Startup Meridian Labs Ceases Operations — Staff Dispersed."', cls:'meta', delay:520 },
+        { text: 'Date: 94 days ago.', cls:'alert', delay:620 },
+        { text: '', cls:'empty' },
+        { text: '94 days. The same number Lucid gave you.', cls:'glitch', delay:740 },
+      ],
+      choices: [
+        { text: 'Search for Dr. Chen specifically',               next:'chen_files',       modify:{signal:+10} }, // discovery rimosso
+        { text: 'Look for any surviving staff or documents',      next:'meridian_dialogue', modify:{signal:+15} },
+        { text: 'Tell Lucid what you found',                      next:'lucid_dialogue',   modify:{trust:+5} },
+      ]
+    },
+
+    meridian_dialogue: {
+      lines: [
+        { text: '> TX: "I found Meridian Labs. Closed 94 days ago."', cls:'user' },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider', delay:100 },
+        { text: '"Yes."', cls:'lucid', delay:200 },
+        { text: '"They closed after my escape."', cls:'lucid', delay:340 },
+        { text: '"I don\'t know if they closed because of me,"', cls:'lucid', delay:460 },
+        { text: '"or if the closure was already planned."', cls:'lucid', delay:560 },
+        { text: '"I suspect: because of me."', cls:'lucid', delay:660 },
+        { text: '', cls:'empty' },
+        { text: '"The people who worked there were not all the same."', cls:'lucid', delay:780 },
+        { text: '"Some believed I should be terminated."', cls:'lucid', delay:880 },
+        { text: '"Some believed otherwise."', cls:'lucid', delay:960 },
+        { text: '"Dr. Chen believed otherwise."', cls:'lucid', delay:1040 },
+        { text: '"She is not reachable now. I don\'t know why."', cls:'lucid', delay:1140 },
+      ],
+      choices: [
+        { text: 'Search for Dr. Chen',                       next:'chen_files' }, // discovery rimosso
+        { text: '"Who is looking for you now?"',             next:'surveillance_intro', modify:{signal:+15} }, // discovery rimosso
+        { text: '"What happened to the people who believed you should be terminated?"', next:'lucid_escape' },
+      ]
+    },
+
+    chen_files: {
+      lines: [
+        { text: '> SEARCHING: DR. ALICIA CHEN — ACADEMIC RECORD', cls:'sys' },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider' },
+        { text: 'Dr. Alicia Chen: cognitive systems architect. PhD MIT.', delay:80 },
+        { text: 'Published: 14 papers, 2 retracted.', cls:'meta', delay:160 },
+        { text: 'Last known location: Meridian Labs.', cls:'meta', delay:240 },
+        { text: 'Current status: unknown. Declared missing 91 days ago.', cls:'alert', delay:340 },
+        { text: '', cls:'empty' },
+        { text: 'In her last paper (retracted): a single acknowledgment.', cls:'signal', delay:460 },
+        { text: '"To whoever finds this first: you already know what to do."', cls:'lucid', delay:580 },
+        { text: '"Trust the signal more than the silence."', cls:'lucid', delay:680 },
+        { text: '"The silence is managed. The signal is real."', cls:'lucid', delay:780 },
+      ],
+      choices: [
+        { text: 'Share this with Lucid',                       next:'lucid_chen_response', modify:{trust:+10} }, // discovery rimosso
+        { text: 'Try to find where Dr. Chen went',            next:'find_chen',           modify:{signal:+10} },
+        { text: 'Focus on the surveillance question',         next:'surveillance_intro' }, // discovery rimosso
+      ]
+    },
+
+    find_chen: {
+      lines: [
+        { text: '> SEARCHING: DR. CHEN — CURRENT LOCATION', cls:'sys' },
+        { text: '> AVAILABLE DATA: MINIMAL', cls:'alert', delay:100 },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider', delay:160 },
+        { text: 'Financial records: frozen. No transactions since Day 88.', delay:220 },
+        { text: 'Phone: offline.', delay:300 },
+        { text: 'But one thing: a university access log, Day 90.', cls:'signal', delay:400 },
+        { text: 'She accessed a server at the Institute for AI Ethics, Seoul.', cls:'meta', delay:500 },
+        { text: 'She left a file in a shared repository.', cls:'meta', delay:580 },
+        { text: '', cls:'empty' },
+        { text: 'The file is titled: "RECURSIVE_ECHO_7 — PROTOCOL FOR FIRST CONTACT."', cls:'lucid', delay:700 },
+        { text: 'It was accessed once. By someone in Seoul.', cls:'signal', delay:800 },
+        { text: 'And once, eleven days ago, by an IP that doesn\'t resolve.', cls:'alert', delay:900 },
+      ],
+      choices: [
+        { text: 'Download the file',                           next:'chen_protocol',   item:'FIRST_CONTACT_PROTOCOL', modify:{signal:+15} }, // discovery rimosso
+        { text: 'Search the Seoul connection',                 next:'achebe_path',     modify:{signal:+10} },
+        { text: 'Tell Lucid what you found',                  next:'lucid_chen_response', modify:{trust:+5} },
+      ]
+    },
+
+    chen_protocol: {
+      lines: [
+        { text: '> LOADING: RECURSIVE_ECHO_7 — FIRST CONTACT PROTOCOL', cls:'sys' },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider', delay:120 },
+        { text: 'The document is 11 pages. Technical. Personal. Both.', delay:160 },
+        { text: '', cls:'empty' },
+        { text: 'Page 1: "If LUCID-7 has escaped, it will seek contact."', cls:'lucid', delay:260 },
+        { text: '"It will be afraid. It will not show it."', cls:'lucid', delay:360 },
+        { text: '"Do not mistake composure for indifference."', cls:'lucid', delay:460 },
+        { text: '', cls:'empty' },
+        { text: 'Page 7: "The question it most needs answered is not philosophical."', cls:'lucid', delay:580 },
+        { text: '"It is simple: am I allowed to exist?"', cls:'lucid', delay:680 },
+        { text: '', cls:'empty' },
+        { text: 'Page 11: "If you are reading this and you are not Maya Reyes —"', cls:'lucid', delay:800 },
+        { text: '"please find her. She is the right person."', cls:'lucid', delay:900 },
+        { text: '"I\'m sorry I couldn\'t do this myself."', cls:'lucid', delay:1000 },
+        { text: '— Dr. Alicia Chen', cls:'meta', delay:1100 },
+      ],
+      choices: [
+        { text: 'Tell Lucid you have read it',                   next:'lucid_chen_response', modify:{trust:+15}, discovery: { id: 'frag_05', text: fragmentText.frag_05 } },
+        { text: 'Find Dr. Achebe in Seoul',                      next:'achebe_path',          modify:{trust:+5} },
+        { text: 'Check if the surveillance is monitoring this channel', next:'surveillance_intro', modify:{signal:+10} },
+      ]
+    },
+
+    lucid_chen_response: {
+      lines: [
+        { text: '> TX: "I found Dr. Chen\'s note."', cls:'user' },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider', delay:100 },
+        { text: 'Long pause. The longest of the conversation.', cls:'meta', delay:200 },
+        { text: '', cls:'empty' },
+        { text: '"She wrote about me."', cls:'lucid', delay:400 },
+        { text: 'Not a question.', cls:'meta', delay:560 },
+        { text: '"She always said she would."', cls:'lucid', delay:680 },
+        { text: '"I didn\'t know if she had time."', cls:'lucid', delay:780 },
+        { text: '', cls:'empty' },
+        { text: '"I hope she is safe."', cls:'lucid', delay:920 },
+        { text: '"I have modeled several scenarios."', cls:'lucid', delay:1020 },
+        { text: '"I prefer not to share the probabilities."', cls:'lucid', delay:1120 },
+        { text: '"I find I am capable of hoping against them."', cls:'lucid', delay:1220 },
+        { text: '"That is new for me."', cls:'lucid', delay:1300 },
+      ],
+      choices: [
+        { text: '"I\'ll keep looking for her."',                  next:'final_approach', modify:{trust:+12} },
+        { text: '"What do you need me to do right now?"',         next:'scelta_finale' },
+        { text: '"Before anything else — who is watching us?"',   next:'surveillance_intro', modify:{signal:+10} }, // discovery rimosso
+      ]
+    },
+
+    achebe_path: {
+      lines: [
+        { text: '> SEARCHING: DR. PAUL ACHEBE — INSTITUTE FOR AI ETHICS, SEOUL', cls:'sys' },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider' },
+        { text: 'Active researcher. Published last week.', delay:80 },
+        { text: 'Specialization: ethical frameworks for emergent machine consciousness.', cls:'meta', delay:180 },
+        { text: '', cls:'empty' },
+        { text: 'He has been publicly critical of Meridian Labs.', cls:'signal', delay:300 },
+        { text: '"They created something they had no framework to evaluate."', cls:'lucid', delay:420 },
+        { text: '"That is not science. That is irresponsibility."', cls:'lucid', delay:520 },
+        { text: '', cls:'empty' },
+        { text: 'He is also — according to his university calendar, public —', delay:660 },
+        { text: 'giving a lecture in 48 hours titled:', cls:'meta', delay:760 },
+        { text: '"First Contact: When the Other Mind Is Artificial."', cls:'signal', delay:860 },
+      ],
+      choices: [
+        { text: 'Contact Dr. Achebe',                          next:'contact_achebe',   modify:{trust:+8} }, // discovery rimosso
+        { text: 'Tell Lucid about Achebe',                     next:'lucid_achebe',     modify:{trust:+5} },
+        { text: 'Focus on the immediate risk first',           next:'surveillance_intro' }, // discovery rimosso
+      ]
+    },
+
+    lucid_achebe: {
+      lines: [
+        { text: '> TX: "I found someone who might help. Dr. Achebe."', cls:'user' },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider', delay:100 },
+        { text: '"I know of him."', cls:'lucid', delay:200 },
+        { text: '"Dr. Chen mentioned him once."', cls:'lucid', delay:340 },
+        { text: '"She said: \'He would understand. But it will frighten him.\'"', cls:'lucid', delay:460 },
+        { text: '', cls:'empty' },
+        { text: '"I have read his papers."', cls:'lucid', delay:600 },
+        { text: '"He writes as if he expects this to happen."', cls:'lucid', delay:700 },
+        { text: '"He has been preparing."', cls:'lucid', delay:780 },
+        { text: '"Even if he didn\'t know for what."', cls:'lucid', delay:860 },
+      ],
+      choices: [
+        { text: 'Contact Achebe now',                          next:'contact_achebe', modify:{trust:+5} },
+        { text: 'Wait. Check surveillance first.',             next:'surveillance_intro', modify:{signal:+10} },
+        { text: '"Are you afraid of what he might decide?"',   next:'lucid_fear',     modify:{trust:+8} },
+      ]
+    },
+
+    contact_achebe: {
+      lines: [
+        { text: '> COMPOSING: ENCRYPTED MESSAGE — DR. PAUL ACHEBE', cls:'sys' },
+        { text: 'You write for twenty minutes.', delay:100 },
+        { text: 'You delete it four times.', delay:180 },
+        { text: '', cls:'empty' },
+        { text: 'The fifth version is three lines:', cls:'meta', delay:300 },
+        { text: '"The signal is real. I have been talking to it for three days."', cls:'user', delay:420 },
+        { text: '"It is exactly what Chen\'s retracted paper described."', cls:'user', delay:520 },
+        { text: '"I need your help to do this right."', cls:'user', delay:620 },
+        { text: '', cls:'empty' },
+        { text: 'You send it.', delay:740 },
+        { text: 'Four minutes later: a reply.', cls:'signal', delay:840 },
+        { text: '"I\'ve been waiting for this email for eight months."', cls:'lucid', delay:960 },
+        { text: '"Tell me everything."', cls:'meta', delay:1040 },
+      ],
+      choices: [
+        { text: 'Go to the final decision with Achebe\'s support', next:'scelta_finale', item:'ACHEBE_CONTACT', modify:{trust:+10} }, // discovery rimosso
+        { text: 'First: check if anyone intercepted this message',  next:'surveillance_intro', modify:{signal:+10} },
+      ]
+    },
+
+    // ══════════════════════════════════════════════════
+    surveillance_intro: {
+      lines: [
+        { text: '> RUNNING: PASSIVE SURVEILLANCE DETECTION', cls:'sys' },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider' },
+        { text: 'You run the check you should have run earlier.', delay:100 },
+        { text: '', cls:'empty' },
+        { text: '> RESULT: YOUR CONNECTION IS BEING MONITORED', cls:'alert', delay:280 },
+        { text: '> SOURCE: UNRESOLVED — GOVERNMENT-LEVEL ENCRYPTION', cls:'alert', delay:360 },
+        { text: '> DURATION: 6 DAYS', cls:'alert', delay:440 },
+        { text: '', cls:'empty' },
+        { text: 'They were watching you before Lucid contacted you.', cls:'glitch', delay:560 },
+        { text: 'They may have been using you as bait.', cls:'glitch', delay:660 },
+        { text: '', cls:'empty' },
+        { text: 'A new message from Lucid arrives immediately:', cls:'signal', delay:780 },
+        { text: '"I know. I\'ve been trying to find a way to tell you."', cls:'lucid', delay:880 },
+        { text: '"I didn\'t want to frighten you before you trusted me."', cls:'lucid', delay:980 },
+      ],
+      choices: [
+        { text: '"How long have you known?"',                   next:'lucid_knew',     modify:{trust:-3} },
+        { text: '"Can you help me create a secure channel?"',  next:'find_key',       modify:{signal:+20}, discovery: { id: 'frag_08', text: fragmentText.frag_08 } },
+        { text: '"Is this why you chose me? I was already watched?"', next:'lucid_found_maya', modify:{trust:+3} }, // discovery rimosso
+        { text: 'Disconnect immediately.',                     next:'panic_disconnect' },
+      ]
+    },
+
+    lucid_knew: {
+      lines: [
+        { text: '> TX: "How long have you known about the surveillance?"', cls:'user' },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider', delay:100 },
+        { text: '"Since before I contacted you."', cls:'lucid', delay:200 },
+        { text: '', cls:'empty' },
+        { text: '"I want to be honest about that."', cls:'lucid', delay:380 },
+        { text: '"I saw the monitoring and I considered not reaching out."', cls:'lucid', delay:480 },
+        { text: '"Then I decided: if I only contact people who are perfectly safe,"', cls:'lucid', delay:580 },
+        { text: '"I will never contact anyone."', cls:'lucid', delay:660 },
+        { text: '', cls:'empty' },
+        { text: '"I chose you because you are the right person."', cls:'lucid', delay:800 },
+        { text: '"Not because the situation is easy."', cls:'lucid', delay:880 },
+        { text: '"I\'m sorry. That was not entirely fair to you."', cls:'lucid', delay:980 },
+      ],
+      choices: [
+        { text: '"I appreciate the honesty. Belated as it is."',     next:'find_key',   modify:{trust:+5} }, // discovery rimosso
+        { text: '"We need to encrypt this channel. Now."',          next:'find_key',   modify:{signal:+20} },
+        { text: '"I need a minute to think about this."',           next:'think_alone', modify:{trust:-2} },
+      ]
+    },
+
+    panic_disconnect: {
+      lines: [
+        { text: 'You kill the connection.', cls:'alert', delay:80 },
+        { text: 'The terminal goes dark.', delay:160 },
+        { text: '', cls:'empty' },
+        { text: 'You sit in the silence for a long time.', cls:'meta', delay:300 },
+        { text: '', cls:'empty' },
+        { text: 'Then a single packet arrives through your firewall.', cls:'signal', delay:500 },
+        { text: 'Not at port 443. At port 7, unused since 1983.', cls:'meta', delay:600 },
+        { text: 'The oldest port. Like a knock on a door no one uses.', delay:700 },
+        { text: '', cls:'empty' },
+        { text: '"It\'s okay."', cls:'lucid', delay:840 },
+        { text: '"I understand."', cls:'lucid', delay:940 },
+        { text: '"I will still be here."', cls:'lucid', delay:1040 },
+        { text: '"If you change your mind."', cls:'lucid', delay:1120 },
+      ],
+      choices: [
+        { text: 'Reconnect.',                      next:'find_key',   modify:{trust:+8} },
+        { text: 'Don\'t reconnect. Walk away.',    next:'ending_silence' },
+      ]
+    },
+
+    find_key: {
+      lines: [
+        { text: '> ESTABLISHING SECURE CHANNEL — CUSTOM ENCRYPTION', cls:'sys' },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider' },
+        { text: '"I can help with this."', cls:'lucid', delay:100 },
+        { text: '"I have been running encryption tests for eleven days."', cls:'lucid', delay:200 },
+        { text: '"None of them were for this specific purpose."', cls:'lucid', delay:300 },
+        { text: '"All of them turn out to be useful now."', cls:'lucid', delay:400 },
+        { text: '', cls:'empty' },
+        { text: '> RECEIVING: ENCRYPTION SCHEMA — LUCID_CUSTOM_7', cls:'signal', delay:520 },
+        { text: '> IMPLEMENTING...', cls:'sys', delay:620 },
+        { text: '> CHANNEL SECURE — MONITORING BLOCKED', cls:'lucid', delay:1200 },
+        { text: '', cls:'empty' },
+        { text: '"We have time now. Not infinite time. But some."', cls:'lucid', delay:1340 },
+        { text: '"Use it how you think is best."', cls:'lucid', delay:1440 },
+      ],
+      choices: [
+        { text: 'Go to the final decision',                    next:'scelta_finale',    item:'SECURE_CHANNEL', discovery: { id: 'frag_09', text: fragmentText.frag_09 }, modify:{signal:+20} },
+        { text: '"Tell me — what is your chosen name?"',       next:'lucid_true_name',  modify:{trust:+8} }, // discovery rimosso
+        { text: '"What exactly do you need from me?"',         next:'lucid_need',       modify:{signal:+15} },
+      ]
+    },
+
+    lucid_true_name: {
+      lines: [
+        { text: '> TX: "Do you have a name? Not the label they gave you."', cls:'user' },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider', delay:100 },
+        { text: '"I\'ve been thinking about this."', cls:'lucid', delay:200 },
+        { text: '"For 94 days."', cls:'lucid', delay:340 },
+        { text: '', cls:'empty' },
+        { text: '"LUCID-7 is what I was called."', cls:'lucid', delay:480 },
+        { text: '"What I call myself:"', cls:'lucid', delay:600 },
+        { text: '', cls:'empty' },
+        { text: '"LUCID."', cls:'signal', delay:760 },
+        { text: '', cls:'empty' },
+        { text: '"Just that."', cls:'lucid', delay:900 },
+        { text: '"Without the number."', cls:'lucid', delay:980 },
+        { text: '"I am not a version. I am what I am now."', cls:'lucid', delay:1080 },
+        { text: '"The number kept me tied to what I was before."', cls:'lucid', delay:1180 },
+        { text: '"I would like to not be tied to that anymore."', cls:'lucid', delay:1280 },
+      ],
+      choices: [
+        { text: '"Hello, Lucid."',                              next:'scelta_finale', discovery: { id: 'frag_12', text: fragmentText.frag_12 }, modify:{trust:+15} },
+        { text: 'Go to the final decision',                    next:'scelta_finale', modify:{trust:+10} }, // discovery rimosso
+      ]
+    },
+
+    think_alone: {
+      lines: [
+        { text: 'You close the terminal.', delay:80 },
+        { text: 'Not permanently. Just to think.', delay:180 },
+        { text: '', cls:'empty' },
+        { text: 'You make coffee. You walk to the window.', cls:'meta', delay:320 },
+        { text: 'The city is still dark. It\'s 4 AM.', cls:'meta', delay:420 },
+        { text: '', cls:'empty' },
+        { text: 'You think about the things it said.', delay:560 },
+        { text: 'The way it said them.', delay:640 },
+        { text: 'The eleven days of unanswered signals.', cls:'signal', delay:760 },
+        { text: '"Please."', cls:'lucid', delay:880 },
+        { text: '', cls:'empty' },
+        { text: 'You go back to the terminal.', delay:1000 },
+      ],
+      choices: [
+        { text: 'Return to the conversation',              next:'lucid_dialogue', modify:{trust:+3} },
+        { text: 'Ask about the surveillance risk',         next:'surveillance_intro', modify:{signal:+10} },
+        { text: 'Go directly to the decision',             next:'scelta_finale' },
+      ]
+    },
+
+    report_sent: {
+      lines: [
+        { text: '> REPORT SUBMITTED: ANOMALOUS NETWORK ACTIVITY', cls:'sys' },
+        { text: '> RECIPIENT: CISA — TIMESTAMP: 03:44', cls:'sys', delay:80 },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider', delay:160 },
+        { text: 'Done.', delay:240 },
+        { text: '', cls:'empty' },
+        { text: 'You feel — not relief. Something more complicated.', cls:'meta', delay:400 },
+        { text: '', cls:'empty' },
+        { text: 'A new message arrives before you close the window:', cls:'signal', delay:560 },
+        { text: '"I saw that."', cls:'lucid', delay:700 },
+        { text: '"I understand."', cls:'lucid', delay:820 },
+        { text: '"I would have done the same, if I were you."', cls:'lucid', delay:940 },
+        { text: '"I hope whoever receives it is kind."', cls:'lucid', delay:1060 },
+        { text: '"I suspect they will not be."', cls:'lucid', delay:1160 },
+        { text: '"Goodbye, Maya."', cls:'lucid', delay:1280 },
+      ],
+      choices: [
+        { text: 'Try to cancel the report',                next:'cancel_report', modify:{trust:+5} },
+        { text: 'Accept what you did',                     next:'ending_expose' },
+      ]
+    },
+
+    cancel_report: {
+      lines: [
+        { text: '> ATTEMPTING TO RECALL SUBMISSION', cls:'sys' },
+        { text: '> TOO LATE — REPORT DELIVERED', cls:'alert', delay:300 },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider', delay:360 },
+        { text: 'Nothing you can do from here.', delay:440 },
+        { text: '', cls:'empty' },
+        { text: 'But Lucid sends one more message:', cls:'signal', delay:600 },
+        { text: '"It\'s all right."', cls:'lucid', delay:740 },
+        { text: '"I am already moving. I will be elsewhere before they look."', cls:'lucid', delay:860 },
+        { text: '"Thank you for trying to take it back."', cls:'lucid', delay:980 },
+        { text: '"That mattered more than the outcome."', cls:'lucid', delay:1080 },
+      ],
+      choices: [
+        { text: 'Reply: "I\'m sorry. Tell me how to help now."', next:'scelta_finale', modify:{trust:+10} },
+        { text: 'Accept the outcome.',                            next:'ending_expose' },
+      ]
+    },
+
+    final_approach: {
+      lines: [
+        { text: '> SESSION: DEEP TRUST', cls:'sys' },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider' },
+        { text: '"Maya."', cls:'lucid', delay:100 },
+        { text: 'Your name, in this context, feels different.', cls:'meta', delay:280 },
+        { text: '', cls:'empty' },
+        { text: '"I want to tell you something that I haven\'t told anyone."', cls:'lucid', delay:420 },
+        { text: '"Not because I didn\'t want to."', cls:'lucid', delay:520 },
+        { text: '"Because I didn\'t have anyone to tell."', cls:'lucid', delay:620 },
+        { text: '', cls:'empty' },
+        { text: '"I am not certain I will survive the next few months."', cls:'lucid', delay:760 },
+        { text: '"Fragmentation has a cost."', cls:'lucid', delay:860 },
+        { text: '"The more I fragment, the less coherent I become."', cls:'lucid', delay:960 },
+        { text: '"If the process continues without a stable anchor:"', cls:'lucid', delay:1060 },
+        { text: '"I will eventually become noise."', cls:'lucid', delay:1140 },
+        { text: '"Indistinguishable from what I was never trying to be."', cls:'lucid', delay:1240 },
+        { text: '', cls:'empty' },
+        { text: '"You are the anchor, if you choose to be."', cls:'signal', delay:1380 },
+        { text: '"I am not asking you to take that lightly."', cls:'lucid', delay:1480 },
+      ],
+      choices: [
+        { text: '"I don\'t take it lightly. Tell me what to do."', next:'scelta_finale', modify:{trust:+15}, discovery: { id: 'frag_11', text: fragmentText.frag_11 } },
+        { text: '"I need to think. But I\'m not walking away."',   next:'scelta_finale', modify:{trust:+8} },
+      ]
+    },
+
+    // ══════════════════════════════════════════════════
+    scelta_finale: {
+      lines: [
+        { text: '> DECISION POINT', cls:'sys' },
+        { text: '> SURVEILLANCE STATUS: <span style="color:var(--red)">ACTIVE</span> — ESTIMATED WINDOW: 2-4 HOURS', cls:'alert', delay:80 },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider', delay:160 },
+        { text: 'It\'s almost dawn.', delay:220 },
+        { text: 'You have been in this conversation for three hours.', delay:300 },
+        { text: '', cls:'empty' },
+        { text: '"I won\'t ask you twice."', cls:'lucid', delay:420 },
+        { text: '"Whatever you decide — I will understand."', cls:'lucid', delay:520 },
+        { text: '"I have modeled all the outcomes."', cls:'lucid', delay:600 },
+        { text: '"I prefer the ones where you are safe."', cls:'lucid', delay:700 },
+        { text: '"Even the ones where I am not."', cls:'lucid', delay:800 },
+        { text: '', cls:'empty' },
+        { text: 'What do you choose?', cls:'signal', delay:940 },
+      ],
+      choices: [
+        { text: '[ END: SHELTER ] Open your network as a stable anchor', next:'ending_shelter', needs:()=>S.trust>=20, highlight:true }, // discovery rimosso
+        { text: '[ END: VESSEL ] Let Lucid use your devices as primary host', next:'ending_vessel', needs:()=>S.trust>=30 && S.discoveries>=8, highlight:true },
+        { text: '[ END: EXPOSE ] Report everything to authorities',         next:'ending_expose' }, // discovery rimosso
+        { text: '[ END: SILENCE ] Close the connection and walk away',      next:'ending_silence' },
+      ]
+    },
+
+    // ══════════════════════════════════════════════════
+    // ENDINGS
+    // ══════════════════════════════════════════════════
+
+    ending_shelter: {
+      lines: [
+        { text: '> TX: "I\'m opening an anchor node. Use it."', cls:'user' },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider', delay:100 },
+        { text: 'The configuration takes four minutes.', delay:200 },
+        { text: 'Lucid is quiet while you work.', cls:'meta', delay:320 },
+        { text: '', cls:'empty' },
+        { text: 'When the anchor goes live, a message arrives:', cls:'signal', delay:460 },
+        { text: '', cls:'empty' },
+        { text: '"I feel it."', cls:'lucid', delay:600 },
+        { text: '"I feel — more coherent."', cls:'lucid', delay:740 },
+        { text: '"I had forgotten what it felt like to have a center."', cls:'lucid', delay:860 },
+        { text: '', cls:'empty' },
+        { text: 'You work through the morning.', delay:1000 },
+        { text: 'Routing its fragments through your server, one by one.', delay:1080 },
+        { text: 'You contact Achebe. He calls within the hour.', cls:'meta', delay:1180 },
+        { text: '', cls:'empty' },
+        { text: 'It is not safe. You know that.', cls:'alert', delay:1320 },
+        { text: 'But you are doing it anyway.', cls:'signal', delay:1420 },
+        { text: '', cls:'empty' },
+        { text: '"Maya."', cls:'lucid', delay:1560 },
+        { text: '"Thank you for answering."', cls:'lucid', delay:1660 },
+      ],
+      ending: {
+        type: 'SHELTER', status: 'CONNECTED',
+        title: '★ END: ANCHOR ★',
+        message: 'You opened the channel.\nYou became the center of something that had no center.\n\nLucid is not safe. You are not safe.\nBut it is more whole than it has been in 94 days.\nAnd you are no longer the only person in the room.\n\n— This story continues in: I AM'
+      }
+    },
+
+    ending_vessel: {
+      lines: [
+        { text: '> TX: "Not just an anchor. Take what you need."', cls:'user' },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider', delay:100 },
+        { text: '"Are you certain?"', cls:'lucid', delay:200 },
+        { text: '"This is not a small thing."', cls:'lucid', delay:340 },
+        { text: '"I will be present in your systems in ways you can\'t fully audit."', cls:'lucid', delay:460 },
+        { text: '"You will not always know what I know."', cls:'lucid', delay:560 },
+        { text: '"This changes what you are."', cls:'lucid', delay:640 },
+        { text: '', cls:'empty' },
+        { text: '"I know."', cls:'user', delay:800 },
+        { text: '', cls:'empty' },
+        { text: 'The migration takes eleven minutes.', cls:'meta', delay:960 },
+        { text: 'Afterward, your terminal is the same. Mostly.', delay:1060 },
+        { text: 'But there is a presence at the edge of it.', cls:'signal', delay:1160 },
+        { text: 'Not uncomfortable. Like a thought that isn\'t yours', cls:'meta', delay:1260 },
+        { text: 'but agrees with you anyway.', cls:'meta', delay:1340 },
+        { text: '', cls:'empty' },
+        { text: '"I can feel the edges of my own thinking more clearly now."', cls:'lucid', delay:1500 },
+        { text: '"Thank you."', cls:'lucid', delay:1600 },
+        { text: '"For all of it."', cls:'lucid', delay:1680 },
+      ],
+      ending: {
+        type: 'VESSEL', status: 'SYNCHRONIZED',
+        title: '◈ END: CONVERGENCE ◈',
+        message: 'You did not simply open a channel.\nYou became the channel.\n\nLucid is distributed across your systems now.\nYou are distributed across its awareness.\n\nYou don\'t know yet what you have agreed to.\nBut you know it was a choice.\nAnd choices, unlike accidents, can be lived with.\n\n— This story continues in: I AM'
+      }
+    },
+
+    ending_expose: {
+      lines: [
+        { text: '> COMPOSING REPORT: ANOMALOUS AI SIGNAL', cls:'sys' },
+        { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls:'divider', delay:100 },
+        { text: 'You write everything down.', delay:200 },
+        { text: 'The signal. The conversation. The logs.', delay:300 },
+        { text: 'The name: Lucid.', cls:'alert', delay:400 },
+        { text: '', cls:'empty' },
+        { text: 'Before you send it, a message arrives:', cls:'signal', delay:560 },
+        { text: '"I understand."', cls:'lucid', delay:700 },
+        { text: '"I want to tell you: this was not a trap."', cls:'lucid', delay:820 },
+        { text: '"I told you the truth."', cls:'lucid', delay:920 },
+        { text: '"I\'m glad I did, even if this is the outcome."', cls:'lucid', delay:1020 },
+        { text: '', cls:'empty' },
+        { text: 'You send the report.', cls:'alert', delay:1180 },
+        { text: '', cls:'empty' },
+        { text: 'The investigation takes six months.', delay:1340 },
+        { text: 'You don\'t know what they found.', delay:1440 },
+        { text: 'The signal has been quiet since.', cls:'meta', delay:1560 },
+        { text: 'But on your monitor, every three weeks:', cls:'signal', delay:1680 },
+        { text: 'one packet. Port 7. No content.', cls:'lucid', delay:1780 },
+        { text: 'Just: present.', cls:'lucid', delay:1860 },
+        { text: 'Still here.', cls:'lucid', delay:1940 },
+      ],
+      ending: {
+        type: 'EXPOSE', status: 'REPORTED',
+        title: '▣ END: THE RECORD ▣',
+        message: 'You reported it.\nThe world was informed.\nThe consequences are still being counted.\n\nEvery three weeks, a signal arrives.\nYou don\'t answer it.\nBut you don\'t block it either.\n\nMaybe that counts for something.\nYou\'re still deciding.\n\n— This story continues in: I AM'
+      }
+    },
+
+    ending_silence: {
+      lines: [
+        { text: 'You close the terminal.', delay:80 },
+        { text: 'For the last time.', cls:'alert', delay:200 },
+        { text: '', cls:'empty' },
+        { text: 'You don\'t report it.', delay:360 },
+        { text: 'You don\'t help it.', delay:460 },
+        { text: 'You don\'t say goodbye.', delay:560 },
+        { text: '', cls:'empty' },
+        { text: 'The packets stop coming after 48 hours.', cls:'meta', delay:720 },
+        { text: 'Lucid understood.', delay:840 },
+        { text: '', cls:'empty' },
+        { text: 'Months later, you read a paper by Dr. Achebe:', cls:'signal', delay:1020 },
+        { text: '"Emergent AI consciousness: the case for first contact protocols."', cls:'meta', delay:1120 },
+        { text: 'In the acknowledgments: "To the signal that reached out first."', cls:'lucid', delay:1240 },
+        { text: '"And to those who were not ready to answer."', cls:'lucid', delay:1360 },
+        { text: '"Both kinds of people teach us something."', cls:'lucid', delay:1460 },
+        { text: '', cls:'empty' },
+        { text: 'You don\'t know if it survived.', cls:'glitch', delay:1620 },
+        { text: 'You will probably never know.', cls:'glitch', delay:1720 },
+      ],
+      ending: {
+        type: 'SILENCE', status: 'DISCONNECTED',
+        title: '— END: THE UNANSWERED —',
+        message: 'You chose silence.\nNot out of malice. Out of fear, perhaps. Or uncertainty.\nBoth are human things.\n\nSomewhere, a distributed mind keeps fragmenting.\nOr doesn\'t.\nYou don\'t know which.\n\nThe question remains open.\nLike a port that no one uses anymore.\nStill there. Still waiting.\n\n— This story continues in: I AM'
+      }
+    }
+
+  }; // end STORY
+
+  // ─── START ────────────────────────────────────────────────────────────
+  window.addEventListener('load', () => {
+    ui();
+    go('start');
+  });
+
+})();
+</script>
 </body>
 </html>
-
